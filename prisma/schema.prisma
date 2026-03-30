@@ -1,0 +1,845 @@
+// Ticket Intake — Prisma Schema
+// Managed by: Database Engineer specialist
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ── Enums ────────────────────────────────────────────────────────────────────
+
+enum Team {
+  CONTENT
+  DESIGN
+  SEO
+  WEM
+  PAID_MEDIA
+  ANALYTICS
+}
+
+enum TicketStatus {
+  BACKLOG
+  TODO
+  READY
+  IN_PROGRESS
+  IN_REVIEW
+  BLOCKED
+  DONE
+}
+
+enum TicketSize {
+  XS  // 2 hours
+  S   // 4 hours
+  M   // 8 hours (1 day)
+  L   // 20 hours (2.5 days)
+  XL  // 36 hours (4.5 days)
+  XXL // 72 hours (~1.5 weeks)
+}
+
+enum FieldType {
+  TEXT
+  TEXTAREA
+  SELECT
+  MULTISELECT
+  CHECKBOX
+  RADIO
+  DATE
+  NUMBER
+  EMAIL
+  URL
+}
+
+enum UserRole {
+  ADMIN
+  TEAM_LEAD
+  MEMBER
+}
+
+enum DependencyType {
+  BLOCKS
+  BLOCKED_BY
+  RELATED
+}
+
+enum DetectionMethod {
+  MANUAL
+  AI
+}
+
+enum BriefStatus {
+  DRAFT
+  GENERATING
+  REVIEW
+  APPROVED
+  FINALIZED
+  ARCHIVED
+}
+
+enum EpicStatus {
+  INTAKE
+  IN_BRIEF
+  BRIEFED
+  IN_PLANNING
+  IN_PROGRESS
+  DONE
+  ON_HOLD
+  CANCELLED
+}
+
+enum GenerationStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+}
+
+enum CarryoverStatus {
+  PENDING
+  ACCEPTED
+  DISMISSED
+}
+
+enum RoadmapItemStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  DONE
+  CARRIED_OVER
+  NOT_COMMITTED
+  CANCELLED
+}
+
+enum EntityType {
+  SPRINT
+  TICKET
+  EPIC
+  BRIEF
+}
+
+// ── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String
+  password     String         /// bcrypt hash — empty string for SSO-only accounts
+  role         UserRole       @default(MEMBER)
+  team         Team?          /// null = admin with no team affiliation
+  defaultHoursPerDay      Float?         /// personal capacity default: hours worked per day (e.g. 8)
+  defaultWorkdaysPerWeek  Int?           /// personal capacity default: days worked per week (e.g. 5)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  /// SSO fields — populated when user authenticates via an identity provider.
+  /// ssoProvider: e.g. "okta", "azure-ad", "google-workspace"
+  /// ssoId: the `sub` claim from the OIDC token (unique per provider)
+  ssoProvider  String?
+  ssoId        String?
+
+  assignedTickets          Ticket[]                    @relation("AssignedTo")
+  createdTickets           Ticket[]                    @relation("CreatedBy")
+  capacities               TeamCapacity[]
+  statusChanges            TicketStatusHistory[]
+  briefs                   Brief[]                     @relation("BriefCreatedBy")
+  sprintSuggestions        SprintSuggestion[]          @relation("SuggestionCreatedBy")
+  createdDependencies      TicketDependency[]          @relation("DependencyCreatedBy")
+  copilotSessions          CopilotSession[]            @relation("CopilotSessions")
+  comments                 Comment[]
+  notifications            Notification[]
+  timeLogs                 TimeLog[]
+  skillsets                UserSkillset[]
+  deletionLogs             DeletionLog[]               @relation("DeletionLogDeletedBy")
+  restoredLogs             DeletionLog[]               @relation("DeletionLogRestoredBy")
+  roadmapItems             RoadmapItem[]               @relation("RoadmapItemOwner")
+  briefCommentResolutions  BriefComment[]              @relation("BriefCommentResolvedBy")
+  ticketAttachments        TicketAttachment[]          @relation("TicketAttachmentUploadedBy")
+  carryoverResolutions     SprintCarryoverSuggestion[] @relation("CarryoverResolvedBy")
+}
+
+/// Admin-configurable form templates. Each template defines the fields
+/// shown on the intake form.
+model FormTemplate {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean     @default(true)
+  fields      FormField[]
+  tickets     Ticket[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+/// A single field within a FormTemplate.
+/// options and conditions are stored as JSON strings.
+model FormField {
+  id         String       @id @default(cuid())
+  templateId String
+  template   FormTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  label      String
+  fieldKey   String       /// key used in Ticket.formData JSON
+  type       FieldType
+  required   Boolean      @default(false)
+  order      Int
+  options    String?      /// JSON: string[] — choices for SELECT/MULTISELECT/RADIO
+  conditions String?      /// JSON: ConditionalRule[] — show/hide/require rules
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([templateId, fieldKey])
+}
+
+model Ticket {
+  id            String        @id @default(cuid())
+  title         String
+  description   String?
+  team          Team
+  status        TicketStatus  @default(BACKLOG)
+  size          TicketSize?   /// null = unsized
+  dueDate       DateTime?     /// optional deadline — does not affect sprint placement
+  priority      Int           @default(0) /// 0=none 1=low 2=medium 3=high
+  isPriority    Boolean       @default(false) /// Flagged as a priority for the next sprint
+  formData      String        /// JSON: Record<fieldKey, value>
+  templateId    String?
+  template      FormTemplate? @relation(fields: [templateId], references: [id])
+  assigneeId    String?
+  assignee      User?         @relation("AssignedTo", fields: [assigneeId], references: [id])
+  creatorId     String
+  creator       User          @relation("CreatedBy", fields: [creatorId], references: [id])
+  sprintId      String?
+  sprint        Sprint?       @relation(fields: [sprintId], references: [id])
+  epicId        String?
+  epic          Epic?         @relation(fields: [epicId], references: [id])
+  briefId              String?
+  brief                Brief?        @relation(fields: [briefId], references: [id])
+  requiredSkillsetId   String?
+  requiredSkillset     Skillset?     @relation("TicketRequiredSkillset", fields: [requiredSkillsetId], references: [id], onDelete: SetNull)
+  acceptanceCriteria   String?       /// Free-text acceptance criteria / Definition of Done per ticket
+  isCarryover          Boolean       @default(false) /// True when this ticket was IN_PROGRESS at the end of the previous sprint
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  statusHistory        TicketStatusHistory[]
+  aiEstimates          AIEstimate[]
+  dependenciesFrom     TicketDependency[]          @relation("DependencyFrom")
+  dependenciesTo       TicketDependency[]          @relation("DependencyTo")
+  comments             Comment[]
+  labels               TicketLabel[]
+  timeLogs             TimeLog[]
+  attachments          TicketAttachment[]
+  ganttItem            GanttItem?
+  carryoverSuggestions SprintCarryoverSuggestion[]
+
+  @@index([status])
+  @@index([team])
+  @@index([sprintId])
+  @@index([epicId])
+  @@index([assigneeId])
+  @@index([createdAt])
+  @@index([requiredSkillsetId])
+}
+
+model Sprint {
+  id                 String                      @id @default(cuid())
+  name               String
+  goal               String?                     /// Sprint goal statement — visible prominently on the sprint detail header
+  notes              String?
+  startDate          DateTime
+  endDate            DateTime
+  isActive           Boolean                     @default(false)
+  committedPoints    Int?                        /// Snapshot of committed story points taken at sprint activation. May diverge from live ticket sum after activation.
+  retrospectiveNotes  String?                     /// Free-text notes added during or after sprint retrospective
+  retroActionItems    String?                     /// JSON: RetroActionItem[] — structured action items from retrospective
+  tickets            Ticket[]
+  capacities         TeamCapacity[]
+  ganttSlips         GanttItem[]                 @relation("GanttSlippedSprint")
+  carryoverFrom      SprintCarryoverSuggestion[] @relation("CarryoverFromSprint")
+  carryoverTo        SprintCarryoverSuggestion[] @relation("CarryoverToSprint")
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+}
+
+/// Tracks how many story points each user has available in a sprint.
+model TeamCapacity {
+  id        String   @id @default(cuid())
+  sprintId  String
+  sprint    Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points    Int      /// story points available this sprint
+  hours     Int?     /// optional hours — for teams that track time not points
+  daysOff   Int?     @default(0) /// days unavailable this sprint (set by user on My Capacity tab)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sprintId, userId])
+}
+
+/// Epics group related tickets and appear on the roadmap timeline.
+model Epic {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  status      EpicStatus   @default(INTAKE)
+  team        Team?
+  color       String       @default("#6366f1")
+  startDate   DateTime?
+  endDate     DateTime?
+  tickets         Ticket[]
+  briefs          Brief[]
+  ganttItems      GanttItem[]
+  roadmapItem     RoadmapItem?     @relation("EpicRoadmapItem")
+  projectDocument ProjectDocument? @relation("EpicProjectDocument")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([status])
+}
+
+/// Admin-configurable rules that auto-assign incoming tickets to a team
+/// based on keyword matching in the title/description.
+model RoutingRule {
+  id        String   @id @default(cuid())
+  name      String
+  keywords  String   /// JSON string[] — keyword matching is done in-process. Move to DB FTS if rules exceed 1000.
+  team      Team
+  priority  Int      @default(0) /// higher = checked first
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, priority])
+}
+
+/// Immutable log of every status transition for a ticket.
+/// Written by the API on every PATCH that changes ticket.status.
+/// Never updated — only created. No updatedAt by design.
+/// Used to calculate cycle time (IN_PROGRESS → DONE) and lead time (createdAt → DONE).
+model TicketStatusHistory {
+  id           String        @id @default(cuid())
+  ticketId     String
+  ticket       Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromStatus   TicketStatus? /// null = initial creation (no prior status)
+  toStatus     TicketStatus
+  changedAt    DateTime      @default(now())
+  changedById  String
+  changedBy    User          @relation(fields: [changedById], references: [id])
+
+  @@index([ticketId])
+  @@index([changedAt])
+  @@index([ticketId, changedAt])
+}
+
+/// Ticket comment — supports discussion and review threads per ticket.
+/// Author deletion is intentionally rejected (no onDelete Cascade) to preserve audit trail.
+model Comment {
+  id        String   @id @default(cuid())
+  ticketId  String
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id])
+}
+
+/// User-facing label for categorizing tickets cross-team.
+/// Explicit many-to-many through TicketLabel join table.
+/// createdAt is intentionally excluded — labels are static config, not events.
+model Label {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  color     String        @default("#6366f1") /// hex color for badge display
+  createdAt DateTime      @default(now())
+  tickets   TicketLabel[]
+}
+
+/// Explicit join table for the Ticket ↔ Label many-to-many.
+/// Composite primary key on [ticketId, labelId] prevents duplicate label assignments.
+/// Both sides cascade-delete: removing a ticket or label cleans up memberships.
+model TicketLabel {
+  ticketId String
+  labelId  String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  label    Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, labelId])
+  @@index([labelId])
+}
+
+/// In-app notifications delivered to a specific user.
+/// Marked read client-side via PATCH /api/notifications/[id].
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+/// Per-team WIP limits for each kanban column status.
+/// Enforced at the API layer — exceeding the limit returns a 422.
+model KanbanColumnConfig {
+  id       String       @id @default(cuid())
+  team     Team
+  status   TicketStatus
+  wipLimit Int?         /// null = no limit enforced
+
+  @@unique([team, status])
+}
+
+/// SPEC: ai-brief.md
+/// A structured project brief produced by Claude from an intake submission.
+model Brief {
+  id             String      @id @default(cuid())
+  title          String
+  status         BriefStatus @default(DRAFT)
+  rawInput       String      /// JSON: { textFields: Record<string,string>, fileNames: string[] }
+  extractedText  String?     /// plain text extracted from uploaded files
+  objective      String?
+  targetAudience String?
+  deliverables   String?     /// JSON: string[]
+  dependencies   String?     /// JSON: string[]
+  requiredTeams  String?     /// JSON: string[] — may include non-enum team values (PAID_MEDIA etc.)
+  timeline       String?
+  successMetrics String?     /// JSON: string[]
+  clarifications String?     /// JSON: ClarificationItem[]
+  aiModel        String      @default("claude-sonnet-4-6")
+  aiPromptTokens Int?
+  aiOutputTokens Int?
+  epicId         String?
+  epic           Epic?       @relation(fields: [epicId], references: [id])
+  creatorId      String
+  creator        User        @relation("BriefCreatedBy", fields: [creatorId], references: [id])
+  tickets           Ticket[]
+  attachments       BriefAttachment[]
+  generationJobs    TicketGenerationJob[]
+  sprintSuggestions SprintSuggestion[]
+  shareTokens       BriefShareToken[]
+  comments          BriefComment[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
+}
+
+/// SPEC: smart-tickets.md
+/// Tracks one Claude ticket-generation run from a finalized brief.
+model TicketGenerationJob {
+  id             String           @id @default(cuid())
+  briefId        String
+  brief          Brief            @relation(fields: [briefId], references: [id])
+  status         GenerationStatus @default(PENDING)
+  teamResults    String?          /// JSON: TeamGenerationResult[]
+  aiModel        String           @default("claude-sonnet-4-6")
+  aiPromptTokens Int?
+  aiOutputTokens Int?
+  errorMessage   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([briefId])
+}
+
+/// File attached to a Brief by the user during intake.
+/// storedPath is server-only — never returned to the client.
+model BriefAttachment {
+  id         String   @id @default(cuid())
+  briefId    String
+  brief      Brief    @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  fileName   String   /// original filename as uploaded
+  mimeType   String
+  sizeBytes  Int
+  storedPath String   /// server-only: ./uploads/briefs/[briefId]/[filename-with-suffix]
+  createdAt  DateTime @default(now())
+}
+
+/// SPEC: capacity-ai.md
+/// Claude's sprint placement suggestion for a set of tickets. Immutable after creation.
+model SprintSuggestion {
+  id             String   @id @default(cuid())
+  briefId        String?
+  brief          Brief?   @relation(fields: [briefId], references: [id])
+  ticketIds      String   /// JSON: string[]
+  scenarios      String   /// JSON: SprintScenario[]
+  recommendation String?  /// JSON: SprintRecommendation
+  aiModel        String   @default("claude-sonnet-4-6")
+  aiPromptTokens Int?
+  aiOutputTokens Int?
+  createdBy      String
+  creator        User     @relation("SuggestionCreatedBy", fields: [createdBy], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([briefId])
+  @@index([createdBy])
+}
+
+/// SPEC: dependencies.md
+model TicketDependency {
+  id           String          @id @default(cuid())
+  fromTicketId String
+  fromTicket   Ticket          @relation("DependencyFrom", fields: [fromTicketId], references: [id], onDelete: Cascade)
+  toTicketId   String
+  toTicket     Ticket          @relation("DependencyTo", fields: [toTicketId], references: [id], onDelete: Cascade)
+  type         DependencyType
+  detectedBy   DetectionMethod @default(MANUAL)
+  aiConfidence Float?
+  aiRationale  String?
+  createdBy    String
+  creator      User            @relation("DependencyCreatedBy", fields: [createdBy], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@unique([fromTicketId, toTicketId, type])
+  @@index([fromTicketId])
+  @@index([toTicketId])
+}
+
+/// SPEC: ai-copilot.md
+model CopilotSession {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation("CopilotSessions", fields: [userId], references: [id], onDelete: Cascade)
+  messages  CopilotMessage[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([userId])
+}
+
+/// SPEC: ai-copilot.md
+model CopilotMessage {
+  id              String         @id @default(cuid())
+  sessionId       String
+  session         CopilotSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role            MessageRole
+  content         String
+  contextSnapshot String?
+  aiModel         String?
+  aiPromptTokens  Int?
+  aiOutputTokens  Int?
+  createdAt       DateTime       @default(now())
+
+  @@index([sessionId])
+}
+
+/// SPEC: roadmap.md
+/// A named date marker displayed on the roadmap timeline.
+/// No relations — milestones are standalone calendar markers.
+model Milestone {
+  id          String    @id @default(cuid())
+  name        String
+  date        DateTime
+  description String?
+  color       String    @default("#6366f1")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+/// SPEC: ai-estimation.md
+/// Claude's story-point suggestion for a ticket. Append-only — never updated after creation.
+model AIEstimate {
+  id             String     @id @default(cuid())
+  ticketId       String
+  ticket         Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  suggestedSize  TicketSize
+  confidence     Float      /// 0.0 – 1.0
+  rationale      String     /// plain-English explanation from Claude
+  flags          String?    /// JSON: EstimationFlag[]
+  similarTickets String?    /// JSON: string[] — IDs of reference tickets
+  aiModel        String     @default("claude-sonnet-4-6")
+  aiPromptTokens Int?
+  aiOutputTokens Int?
+  accepted       Boolean    @default(false)
+  acceptedBy     String?
+  acceptedAt     DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([ticketId])
+}
+
+/// SPEC: tickets.md
+/// Records time worked against a ticket by a specific user.
+/// hours is a positive Float — minimum 0.25 (15 min), maximum 24 per entry.
+/// note is optional free-text describing the work done.
+/// loggedAt defaults to now() — callers may override to back-date an entry.
+/// Cascade-deletes with both ticket and user to avoid orphaned records.
+model TimeLog {
+  id       String   @id @default(cuid())
+  ticketId String
+  userId   String
+  hours    Float    /// positive, min 0.25, max 24 — validated at API layer
+  note     String?
+  /// The date/time the work was performed — defaults to now() but callers may pass a past date to back-date an entry.
+  loggedAt DateTime @default(now())
+  /// The date/time this record was inserted — immutable audit timestamp, never overridden.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([userId])
+}
+
+/// SPEC: skillsets.md
+/// A named skill or discipline that can be associated with users and required by tickets.
+/// team is nullable so a skillset can be scoped to a specific team or made global in future.
+/// @@unique([name, team]) prevents duplicate skillset names within the same team scope.
+/// A null team value represents a global skillset — Prisma treats two NULL team values
+/// as distinct for unique constraint purposes in SQLite, so global skillsets are safe.
+model Skillset {
+  id        String   @id @default(cuid())
+  name      String
+  team      Team?    /// null = global skillset; non-null = team-specific discipline
+  color     String   @default("#7c3aed") /// hex color used for badge display
+  isActive  Boolean  @default(true)     /// false = soft-deleted; hidden from new tickets
+  createdAt DateTime @default(now())
+
+  userSkillsets    UserSkillset[]
+  requiredByTickets Ticket[]      @relation("TicketRequiredSkillset")
+
+  @@unique([name, team])
+  @@index([team])
+}
+
+/// SPEC: skillsets.md
+/// Join table recording which skillsets a user holds.
+/// assignedAt records when the skillset was granted to the user.
+/// onDelete Cascade on both sides: removing a user or skillset cleans up memberships.
+model UserSkillset {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillsetId  String
+  skillset    Skillset @relation(fields: [skillsetId], references: [id], onDelete: Cascade)
+  assignedAt  DateTime @default(now())
+
+  @@unique([userId, skillsetId])
+  @@index([skillsetId])
+}
+
+/// Immutable audit log of deleted sprints and tickets.
+/// payload stores a full JSON snapshot so the entity can be restored.
+/// ticketCount records how many tickets were unassigned when a sprint was deleted.
+model DeletionLog {
+  id            String    @id @default(cuid())
+  entityType    EntityType
+  entityId      String
+  entityTitle   String
+  deletedById   String
+  deletedBy     User      @relation("DeletionLogDeletedBy", fields: [deletedById], references: [id])
+  payload       String    // Full JSON snapshot of the deleted entity
+  ticketCount   Int       @default(0)   // for sprints: how many tickets were unassigned
+  restoredAt    DateTime?
+  restoredById  String?
+  restoredBy    User?     @relation("DeletionLogRestoredBy", fields: [restoredById], references: [id])
+  createdAt     DateTime  @default(now())
+
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+/// A planning row in the spreadsheet-style roadmap.
+/// period is an ISO month string ("2026-01") used for grouping.
+/// startDate/endDate are optional — used only in the Gantt view.
+model RoadmapItem {
+  id                  String            @id @default(cuid())
+  tier                String?           /// e.g. "Tier 1", "Tier 2"
+  category            String?           /// e.g. "Campaign", "Web Update", "Experimentation"
+  initiative          String?           /// product / initiative name
+  region              String?           /// e.g. "US", "EU", "Global"
+  title               String            /// main item description
+  titleManuallyEdited Boolean           @default(false) /// if true, syncRoadmapItem skips overwriting title
+  ownerId             String?
+  owner               User?             @relation("RoadmapItemOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  status              RoadmapItemStatus @default(NOT_STARTED)
+  period              String            /// ISO month: "2026-01" — used for row grouping
+  startDate           DateTime?         /// for Gantt bars
+  endDate             DateTime?         /// for Gantt bars
+  notes               String?
+  sortOrder           Int               @default(0)
+  epicId              String?           @unique  /// one RoadmapItem per epic max
+  epic                Epic?             @relation("EpicRoadmapItem", fields: [epicId], references: [id], onDelete: SetNull)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([period])
+  @@index([ownerId])
+  @@index([status])
+  @@index([epicId])
+}
+
+/// SPEC: brief-to-epic-workflow.md
+/// Allows PMs to share a brief with external stakeholders without requiring login.
+/// Tokens never expire — they can be revoked by the PM at any time.
+model BriefShareToken {
+  id        String   @id @default(cuid())
+  briefId   String
+  brief     Brief    @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  token     String   @unique  /// 256-bit hex generated with crypto.randomBytes(32)
+  label     String?           /// optional PM-set label e.g. "Shared with Acme team"
+  revoked   Boolean  @default(false)
+  expiresAt DateTime?         /// optional expiry — null means the token never expires
+  createdAt DateTime @default(now())
+
+  comments  BriefComment[]
+
+  @@index([token])
+  @@index([briefId])
+}
+
+/// SPEC: brief-to-epic-workflow.md
+/// Comment left by a stakeholder on a shared brief. No login required.
+model BriefComment {
+  id             String          @id @default(cuid())
+  briefId        String
+  brief          Brief           @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  shareTokenId   String
+  shareToken     BriefShareToken @relation(fields: [shareTokenId], references: [id], onDelete: Cascade)
+  authorName     String          /// self-reported by stakeholder
+  authorEmail    String?         /// optional self-reported email
+  body           String
+  resolved       Boolean         @default(false)
+  resolvedAt     DateTime?
+  resolvedById   String?
+  resolvedBy     User?           @relation("BriefCommentResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime        @default(now())
+
+  @@index([briefId])
+  @@index([shareTokenId])
+}
+
+/// SPEC: brief-to-epic-workflow.md
+/// File uploaded directly to a ticket (separate from BriefAttachment).
+model TicketAttachment {
+  id           String   @id @default(cuid())
+  ticketId     String
+  ticket       Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  uploadedById String
+  uploadedBy   User     @relation("TicketAttachmentUploadedBy", fields: [uploadedById], references: [id])
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storedPath   String   /// server-only — see storage.ts
+  createdAt    DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+/// SPEC: brief-to-epic-workflow.md
+/// A phase/task bar in the epic Gantt chart.
+model GanttItem {
+  id                  String    @id @default(cuid())
+  epicId              String
+  epic                Epic      @relation(fields: [epicId], references: [id], onDelete: Cascade)
+  ticketId            String?   @unique  /// linked ticket, if any
+  ticket              Ticket?   @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  title               String
+  team                Team?
+  color               String?   /// hex color for the bar
+  startDate           DateTime
+  endDate             DateTime
+  order               Int       @default(0)
+  aiGenerated         Boolean   @default(false)
+  slippedFromSprintId String?
+  slippedFromSprint   Sprint?   @relation("GanttSlippedSprint", fields: [slippedFromSprintId], references: [id], onDelete: SetNull)
+  slippedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([epicId])
+}
+
+/// SPEC: brief-to-epic-workflow.md
+/// Tracks tickets that were not completed when a sprint was closed.
+/// Created automatically when isActive is set to false on a Sprint.
+model SprintCarryoverSuggestion {
+  id               String          @id @default(cuid())
+  ticketId         String
+  ticket           Ticket          @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromSprintId     String
+  fromSprint       Sprint          @relation("CarryoverFromSprint", fields: [fromSprintId], references: [id])
+  toSprintId       String?
+  toSprint         Sprint?         @relation("CarryoverToSprint", fields: [toSprintId], references: [id])
+  status           CarryoverStatus @default(PENDING)
+  resolvedByUserId String?
+  resolvedBy       User?           @relation("CarryoverResolvedBy", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  resolvedAt       DateTime?
+  createdAt        DateTime        @default(now())
+
+  @@index([fromSprintId])
+  @@index([ticketId])
+  @@index([status])
+}
+
+/// SPEC: project-document.md
+/// One structured project-document per Epic — holds all PM planning tab data as JSON.
+/// Each tab field is nullable so the document can be created empty and populated
+/// incrementally (AI prefill or manual edits).
+/// aiPrefilled / aiPrefilledAt track whether Claude has run a prefill pass.
+/// @@index([epicId]) is redundant given @unique but kept for explicit query intent.
+model ProjectDocument {
+  id       String @id @default(cuid())
+  epicId   String @unique
+  epic     Epic   @relation("EpicProjectDocument", fields: [epicId], references: [id], onDelete: Cascade)
+
+  /// JSON: ProjectOverviewData — top-level project metadata (name, owner, dates, summary)
+  overview         String?
+  /// JSON: DeliveryPlanRow[] — tabular delivery plan rows
+  deliveryPlan     String?
+  /// JSON: DeliveryTimelineRow[] — timeline milestones with dates
+  deliveryTimeline String?
+  /// JSON: RACIRow[] — Responsible/Accountable/Consulted/Informed matrix rows
+  raci             String?
+  /// JSON: RAIDRow[] — Risks, Assumptions, Issues, Dependencies rows
+  raid             String?
+  /// JSON: GapsTrackerRow[] — identified gaps and their resolution status
+  gapsTracker      String?
+  /// JSON: HypercareRow[] — post-go-live hypercare monitoring items
+  hypercare        String?
+  /// JSON: RiskRegisterRow[] — formal risk register entries
+  riskRegister     String?
+  /// JSON: IssueLogRow[] — active issue log entries
+  issueLog         String?
+  /// JSON: GoLiveCommsRow[] — go-live communication plan rows
+  goLiveComms      String?
+
+  /// true once Claude has completed an AI prefill pass on this document
+  aiPrefilled   Boolean   @default(false)
+  /// timestamp of the most recent AI prefill run; null if never prefilled
+  aiPrefilledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([epicId])
+}
+
+/// Stores admin-managed dropdown options for Tiers, Categories, and Regions.
+/// listKey is one of: "tier" | "category" | "region"
+model ListValue {
+  id        String   @id @default(cuid())
+  listKey   String   /// "tier" | "category" | "region"
+  value     String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([listKey, value])
+  @@index([listKey])
+}

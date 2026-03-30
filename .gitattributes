@@ -1,0 +1,2 @@
+# Keep line endings consistent — LF everywhere, no auto-conversion
+* text=auto eol=lf
