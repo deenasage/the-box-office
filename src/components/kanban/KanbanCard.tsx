@@ -149,8 +149,7 @@ export function KanbanCard({
         onContextMenu={handleContextMenu}
         className={cn(
           "bg-card border border-border rounded-lg p-3 cursor-grab active:cursor-grabbing select-none hover:border-primary/50 transition-colors min-w-0 w-full overflow-hidden min-h-20",
-          isBlocked && "border-l-2 border-l-red-500",
-          !isBlocked && isAging && "border-l-2 border-l-amber-500",
+          isAging && "border-l-2 border-l-amber-500",
           isDragging && "opacity-0"
         )}
         aria-label={ticket.title}

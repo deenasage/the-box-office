@@ -1,4 +1,4 @@
-// SPEC: ai-brief.md
+// SPEC: ai-brief.md, gtm-brief-generator.md
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
@@ -13,6 +13,8 @@ const SectionsSchema = z.object({
   requiredTeams: z.array(z.string()).optional(),
   timeline: z.string().optional(),
   successMetrics: z.array(z.string()).optional(),
+  // GTM brief: full briefData JSON string — parsed and re-stringified to validate it is valid JSON
+  briefData: z.string().optional(),
 });
 
 function canMutate(
@@ -55,6 +57,19 @@ export async function PATCH(
   }
 
   const d = parsed.data;
+
+  // If briefData is supplied, validate it is parseable JSON before storing
+  if (d.briefData !== undefined) {
+    try {
+      JSON.parse(d.briefData);
+    } catch {
+      return NextResponse.json(
+        { error: "briefData must be a valid JSON string." },
+        { status: 400 }
+      );
+    }
+  }
+
   const updated = await db.brief.update({
     where: { id },
     data: {
@@ -65,6 +80,7 @@ export async function PATCH(
       ...(d.requiredTeams !== undefined ? { requiredTeams: JSON.stringify(d.requiredTeams) } : {}),
       ...(d.timeline !== undefined ? { timeline: d.timeline } : {}),
       ...(d.successMetrics !== undefined ? { successMetrics: JSON.stringify(d.successMetrics) } : {}),
+      ...(d.briefData !== undefined ? { briefData: d.briefData } : {}),
     },
   });
 

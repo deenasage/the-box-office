@@ -1,4 +1,5 @@
 // SPEC: ai-brief.md
+// SPEC: gtm-brief-generator.md
 // SPEC: design-improvements.md
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -10,6 +11,28 @@ import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { Plus, FileText } from "lucide-react";
 import { STATUS_BADGE_STYLES as STATUS_STYLES } from "@/lib/constants";
+
+function BriefTypeBadge({ briefType }: { briefType: string | null }) {
+  if (briefType === "GTM") {
+    return (
+      <Badge className="bg-green-100 text-green-700 border-green-200 text-xs font-medium">
+        GTM
+      </Badge>
+    );
+  }
+  if (briefType) {
+    return (
+      <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs font-medium">
+        {briefType.replace(/_/g, " ")}
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="secondary" className="text-xs font-medium">
+      Generic
+    </Badge>
+  );
+}
 
 export default async function BriefsPage({
   searchParams,
@@ -99,12 +122,13 @@ export default async function BriefsPage({
                       {brief.epic && ` · ${brief.epic.name}`}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                     {brief._count.tickets > 0 && (
                       <span className="text-xs text-muted-foreground">
                         {brief._count.tickets} ticket{brief._count.tickets !== 1 ? "s" : ""}
                       </span>
                     )}
+                    <BriefTypeBadge briefType={brief.briefType} />
                     <Badge variant="outline" className={STATUS_STYLES[brief.status]}>
                       {brief.status.charAt(0) + brief.status.slice(1).toLowerCase()}
                     </Badge>

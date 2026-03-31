@@ -418,6 +418,8 @@ model Brief {
   aiModel        String      @default("claude-sonnet-4-6")
   aiPromptTokens Int?
   aiOutputTokens Int?
+  briefType      String?     /// "GTM" | "CAMPAIGN_LAUNCH" | "CAMPAIGN_UPDATE" | "PROBLEM_STATEMENT" — null = legacy generic brief
+  briefData      String?     /// JSON: all 40+ structured fields extracted by the GTM brief generator (see spec: gtm-brief-generator.md)
   epicId         String?
   epic           Epic?       @relation(fields: [epicId], references: [id])
   creatorId      String

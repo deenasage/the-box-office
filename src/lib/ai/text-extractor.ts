@@ -12,9 +12,10 @@ export async function extractText(
   if (mimeType === "text/plain" || mimeType === "text/html") {
     text = buffer.toString("utf-8");
   } else if (mimeType === "application/pdf") {
-    // pdf-parse ships CJS; use require to avoid ESM .default issues
+    // Use lib path directly to avoid pdf-parse's test runner (which looks for
+    // ./test/data/05-versions-space.pdf and throws ENOENT when not present)
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string }>;
+    const pdfParse = require("pdf-parse/lib/pdf-parse.js") as (buf: Buffer) => Promise<{ text: string }>;
     const result = await pdfParse(buffer);
     text = result.text;
   } else if (

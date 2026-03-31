@@ -1,8 +1,10 @@
 // SPEC: ai-brief.md
+// SPEC: gtm-brief-generator.md
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { BriefDetail } from "@/components/briefs/BriefDetail";
+import { GtmBriefDetail } from "@/components/briefs/GtmBriefDetail";
 import { UserRole } from "@prisma/client";
 
 export default async function BriefDetailPage({
@@ -41,8 +43,13 @@ export default async function BriefDetailPage({
 
   if (!isAdmin && brief.creatorId !== session?.user.id) notFound();
 
-  const canEdit =
-    session?.user.id === brief.creatorId || isAdmin;
+  const canEdit = session?.user.id === brief.creatorId || isAdmin;
 
+  // GTM briefs (including while generating) use the new structured detail view
+  if (brief.briefType === "GTM") {
+    return <GtmBriefDetail brief={brief} />;
+  }
+
+  // Legacy briefs use the original detail view
   return <BriefDetail brief={brief} canEdit={canEdit} userRole={session?.user.role} />;
 }

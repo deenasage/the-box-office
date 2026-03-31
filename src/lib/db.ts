@@ -5,11 +5,16 @@ import path from "path";
 
 function createPrismaClient() {
   const dbUrl = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
-  const filePath = dbUrl.startsWith("file:")
-    ? path.resolve(process.cwd(), dbUrl.slice(5))
-    : dbUrl;
+  const authToken = process.env.TURSO_AUTH_TOKEN;
 
-  const adapter = new PrismaLibSql({ url: `file:${filePath}` });
+  let adapter: PrismaLibSql;
+  if (dbUrl.startsWith("file:")) {
+    const filePath = path.resolve(process.cwd(), dbUrl.slice(5)).split(path.sep).join("/");
+    adapter = new PrismaLibSql({ url: `file:${filePath}` });
+  } else {
+    adapter = new PrismaLibSql({ url: dbUrl, authToken });
+  }
+
   return new PrismaClient({ adapter });
 }
 

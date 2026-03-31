@@ -49,6 +49,9 @@ export async function GET(
       tickets: {
         select: { id: true, title: true, team: true, status: true },
       },
+      // _count.shareTokens > 0 means the brief has at least one active share link
+      // Front end uses this to display "Under Review" instead of "Review"
+      _count: { select: { shareTokens: true } },
     },
   });
 
@@ -106,6 +109,9 @@ export async function PATCH(
   return NextResponse.json(updated);
 }
 
+// DELETE /api/briefs/[id] — auth required; creator, ADMIN, or TEAM_LEAD only
+// Only DRAFT, GENERATING, or REVIEW briefs can be deleted (hard delete)
+// Returns 204 on success
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -119,10 +125,24 @@ export async function DELETE(
   if (!canMutate(session, brief.creatorId)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (brief.status !== BriefStatus.DRAFT && brief.status !== BriefStatus.REVIEW) {
-    return NextResponse.json({ error: "Cannot delete brief in current state" }, { status: 400 });
+
+  const deletableStatuses: BriefStatus[] = [
+    BriefStatus.DRAFT,
+    BriefStatus.GENERATING,
+    BriefStatus.REVIEW,
+  ];
+  if (!deletableStatuses.includes(brief.status)) {
+    return NextResponse.json(
+      { error: "Only briefs in DRAFT, GENERATING, or REVIEW status can be deleted" },
+      { status: 400 }
+    );
   }
 
-  await db.brief.update({ where: { id }, data: { status: BriefStatus.ARCHIVED } });
+  try {
+    await db.brief.delete({ where: { id } });
+  } catch {
+    return NextResponse.json({ error: "Failed to delete brief" }, { status: 500 });
+  }
+
   return new NextResponse(null, { status: 204 });
 }

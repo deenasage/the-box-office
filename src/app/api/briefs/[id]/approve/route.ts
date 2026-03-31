@@ -1,14 +1,14 @@
 // SPEC: brief-to-epic-workflow.md
-// Phase 1 — Approve a brief (ADMIN / TEAM_LEAD only)
-// POST /api/briefs/[id]/approve — transitions status to APPROVED
+// Phase 1 — Approve a brief (any authenticated user — stakeholders use share tokens,
+//            but logged-in users can also approve directly)
+// POST /api/briefs/[id]/approve — transitions REVIEW → APPROVED
+// Returns { data: updatedBrief }
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
-import { BriefStatus, UserRole } from "@prisma/client";
+import { BriefStatus } from "@prisma/client";
 import { createNotification } from "@/lib/notify-users";
-
-const APPROVABLE_STATUSES: BriefStatus[] = [BriefStatus.REVIEW, BriefStatus.FINALIZED];
 
 export async function POST(
   _req: NextRequest,
@@ -17,21 +17,13 @@ export async function POST(
   const { session, error } = await requireAuth();
   if (error) return error;
 
-  const isAdminOrLead =
-    session.user.role === UserRole.ADMIN ||
-    session.user.role === UserRole.TEAM_LEAD;
-
-  if (!isAdminOrLead) {
-    return NextResponse.json({ error: "Forbidden — admin or team lead required" }, { status: 403 });
-  }
-
   const { id } = await params;
   const brief = await db.brief.findUnique({ where: { id } });
   if (!brief) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (!APPROVABLE_STATUSES.includes(brief.status)) {
+  if (brief.status !== BriefStatus.REVIEW) {
     return NextResponse.json(
-      { error: "Brief must be in REVIEW or FINALIZED state to approve." },
+      { error: "Brief must be in REVIEW status to approve." },
       { status: 400 }
     );
   }

@@ -5,9 +5,12 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { UserRole, BriefStatus } from "@prisma/client";
 
+const BRIEF_TYPE_VALUES = ["GTM", "CAMPAIGN_LAUNCH", "CAMPAIGN_UPDATE", "PROBLEM_STATEMENT"] as const;
+
 const CreateSchema = z.object({
   title: z.string().min(1),
   rawInput: z.string(), // JSON string
+  briefType: z.enum(BRIEF_TYPE_VALUES).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -43,7 +46,9 @@ export async function GET(req: NextRequest) {
     include: {
       creator: { select: { id: true, name: true } },
       epic: { select: { id: true, name: true } },
-      _count: { select: { attachments: true, tickets: true } },
+      // shareTokens count lets the front end display "Under Review" when status === REVIEW
+      // and at least one non-revoked share link exists (display-only; DB status stays REVIEW)
+      _count: { select: { attachments: true, tickets: true, shareTokens: true } },
     },
     orderBy: { createdAt: "desc" },
     skip: (page - 1) * limit,
@@ -75,12 +80,14 @@ export async function POST(req: NextRequest) {
         title: parsed.data.title,
         rawInput: parsed.data.rawInput,
         creatorId: session.user.id,
+        ...(parsed.data.briefType ? { briefType: parsed.data.briefType } : {}),
       },
       include: {
         creator: { select: { id: true, name: true } },
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("[POST /api/briefs] db.brief.create failed:", err);
     return NextResponse.json({ error: "Failed to create brief" }, { status: 500 });
   }
 
