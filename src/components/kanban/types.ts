@@ -1,20 +1,36 @@
 // SPEC: tickets.md
 // SPEC: design-improvements.md
-import { TicketStatus, Team, TicketSize } from "@prisma/client";
+import { TicketStatus, Team, TicketSize, Hub } from "@prisma/client";
+
+export { Hub };
 
 export interface KanbanTicket {
   id: string;
   title: string;
   status: TicketStatus;
   team: Team | null;
+  hub: Hub | null;
   priority: number;
   size: TicketSize | null;
   updatedAt: string;
   cycleStartedAt: string | null;
   isCarryover: boolean;
+  hasPendingEstimate: boolean;
   assignee: { id: string; name: string } | null;
   epic: { id: string; name: string; color: string | null } | null;
 }
+
+export const HUB_LABELS: Record<Hub, string> = {
+  NA_HUB:   "NA Hub",
+  EU_HUB:   "EU Hub",
+  UKIA_HUB: "UKIA Hub",
+};
+
+export const HUB_SHORT: Record<Hub, string> = {
+  NA_HUB:   "NA",
+  EU_HUB:   "EU",
+  UKIA_HUB: "UKIA",
+};
 
 export type GroupBy = "none" | "team" | "epic" | "assignee" | "priority";
 

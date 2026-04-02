@@ -79,8 +79,8 @@ export function useCopilotSession(): UseCopilotSessionReturn {
         if (!sid) {
           const res = await fetch("/api/copilot/sessions", { method: "POST" });
           if (!res.ok) throw new Error("Failed to create session");
-          const data: { id: string } = await res.json();
-          sid = data.id;
+          const data: { data: { id: string } } = await res.json();
+          sid = data.data.id;
           setSessionId(sid);
           localStorage.setItem(STORAGE_KEY, sid);
         }
@@ -140,22 +140,22 @@ export function useCopilotSession(): UseCopilotSessionReturn {
           }
         );
 
+        let msgId = crypto.randomUUID();
         if (saveRes.ok) {
-          const saved: Message = await saveRes.json();
-          setMessages((prev) => [...prev, saved]);
-        } else {
-          // Save failed — still show the message from stream
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: crypto.randomUUID(),
-              role: "ASSISTANT",
-              content: assembled,
-              createdAt: new Date().toISOString(),
-            },
-          ]);
+          const saved = (await saveRes.json()) as { data?: { id?: string } };
+          if (saved.data?.id) msgId = saved.data.id;
         }
-      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: msgId,
+            role: "ASSISTANT",
+            content: assembled,
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      } catch (err) {
+        console.error("[copilot] sendMessage error:", err);
         setErrorMsg("Sorry, I couldn't process that. Please try again.");
       } finally {
         setStreamingContent("");

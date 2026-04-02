@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
-import { Team, TicketStatus, TicketSize, UserRole , Prisma } from "@prisma/client";
+import { Team, TicketStatus, TicketSize, Hub, UserRole , Prisma } from "@prisma/client";
 import { syncEpicStatus } from "@/lib/epic-status";
 import {
   sendEmail,
@@ -21,6 +21,7 @@ const updateSchema = z.object({
   size: z.nativeEnum(TicketSize).nullable().optional(),
   priority: z.number().int().min(0).max(3).optional(),
   team: z.nativeEnum(Team).optional(),
+  hub: z.nativeEnum(Hub).nullable().optional(),
   assigneeId: z.string().nullable().optional(),
   sprintId: z.string().nullable().optional(),
   epicId: z.string().nullable().optional(),

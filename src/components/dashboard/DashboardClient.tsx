@@ -231,11 +231,14 @@ export function DashboardClient({ data, userName, teamStats, sprintStatusCounts 
       {/* Sprint battery */}
       {activeSprint && sprintStatusCounts.length > 0 && (() => {
         const total = sprintStatusCounts.reduce((sum, s) => sum + s.count, 0);
-        const segments = sprintStatusCounts.map((s) => ({
-          status: s.status,
-          count: s.count,
-          label: STATUS_LABELS[s.status] ?? s.status,
-        }));
+        const STATUS_ORDER = ["BACKLOG", "TODO", "READY", "IN_PROGRESS", "IN_REVIEW", "BLOCKED", "DONE"];
+        const segments = [...sprintStatusCounts]
+          .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status))
+          .map((s) => ({
+            status: s.status,
+            count: s.count,
+            label: STATUS_LABELS[s.status] ?? s.status,
+          }));
         return (
           <section aria-label="Sprint battery">
             <SprintBatteryWidget

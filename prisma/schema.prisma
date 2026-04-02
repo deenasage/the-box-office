@@ -107,6 +107,12 @@ enum CarryoverStatus {
   DISMISSED
 }
 
+enum Hub {
+  NA_HUB
+  EU_HUB
+  UKIA_HUB
+}
+
 enum RoadmapItemStatus {
   NOT_STARTED
   IN_PROGRESS
@@ -221,6 +227,7 @@ model Ticket {
   requiredSkillset     Skillset?     @relation("TicketRequiredSkillset", fields: [requiredSkillsetId], references: [id], onDelete: SetNull)
   acceptanceCriteria   String?       /// Free-text acceptance criteria / Definition of Done per ticket
   isCarryover          Boolean       @default(false) /// True when this ticket was IN_PROGRESS at the end of the previous sprint
+  hub                  Hub?          /// Optional hub assignment: NA_HUB, EU_HUB, or UKIA_HUB
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 

@@ -1,11 +1,17 @@
 // SPEC: ai-estimation.md
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { SizeBadge } from "@/components/tickets/SizeBadge";
-import { CheckCircle2, X } from "lucide-react";
+import { CheckCircle2, X, Pencil } from "lucide-react";
 import { TicketSize } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 
 export interface EstimationFlag {
   type: string;
@@ -23,12 +29,15 @@ export interface AIEstimate {
   createdAt: string;
 }
 
-const FLAG_ICONS: Record<string, string> = {
-  AMBIGUOUS_SCOPE: "⚠️",
-  LIKELY_UNDERESTIMATED: "📈",
-  NO_SIMILAR_TICKETS: "🔍",
-  MISSING_DESCRIPTION: "📝",
+const SIZE_HOURS: Record<TicketSize, number> = {
+  XS: 2, S: 4, M: 8, L: 20, XL: 36, XXL: 72,
 };
+
+const ALL_SIZES = Object.keys(SIZE_HOURS) as TicketSize[];
+
+function sizeLabel(size: TicketSize) {
+  return `${size} — ${SIZE_HOURS[size]}h`;
+}
 
 function ConfidenceBar({ value }: { value: number }) {
   const pct = Math.round(value * 100);
@@ -48,7 +57,7 @@ interface EstimateResultProps {
   estimate: AIEstimate;
   canAccept: boolean;
   accepting: boolean;
-  onAccept: () => void;
+  onAccept: (overrideSize?: TicketSize) => void;
   onDismiss: () => void;
 }
 
@@ -59,14 +68,39 @@ export function EstimateResult({
   onAccept,
   onDismiss,
 }: EstimateResultProps) {
+  const [overriding, setOverriding] = useState(false);
+  const [overrideSize, setOverrideSize] = useState<TicketSize>(estimate.suggestedSize);
+
+  const appliedSize = overriding ? overrideSize : estimate.suggestedSize;
+  const hours = SIZE_HOURS[appliedSize];
+
   return (
     <div className="space-y-3 pt-1">
-      <div className="flex items-center justify-between gap-3">
+      {/* Size + hours + confidence row */}
+      <div className="flex items-end gap-4">
         <div>
           <p className="text-xs text-muted-foreground mb-1">Suggested size</p>
-          <SizeBadge size={estimate.suggestedSize} />
+          {overriding ? (
+            <Select value={overrideSize} onValueChange={(v) => setOverrideSize(v as TicketSize)}>
+              <SelectTrigger className="h-8 w-36 text-sm font-mono font-semibold">
+                <span>{sizeLabel(overrideSize)}</span>
+              </SelectTrigger>
+              <SelectContent>
+                {ALL_SIZES.map((s) => (
+                  <SelectItem key={s} value={s} className="font-mono text-sm">
+                    {sizeLabel(s)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold font-mono">{estimate.suggestedSize}</span>
+              <span className="text-sm text-muted-foreground">{hours}h</span>
+            </div>
+          )}
         </div>
-        <div className="flex-1">
+        <div className="flex-1 pb-1">
           <p className="text-xs text-muted-foreground mb-1">Confidence</p>
           <ConfidenceBar value={estimate.confidence} />
         </div>
@@ -79,10 +113,10 @@ export function EstimateResult({
           {estimate.flags.map((f, i) => (
             <li
               key={i}
-              className="flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5"
+              className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 rounded px-2 py-1.5"
             >
-              <span>{FLAG_ICONS[f.type] ?? "⚠️"}</span>
-              <span>{f.message}</span>
+              <span>⚠️</span>
+              <span>{typeof f === "string" ? f : f.message}</span>
             </li>
           ))}
         </ul>
@@ -91,18 +125,39 @@ export function EstimateResult({
       {estimate.accepted ? (
         <div className="flex items-center gap-1.5 text-xs text-[#008146] dark:text-[#00D93A]">
           <CheckCircle2 className="h-3.5 w-3.5" />
-          Size applied
+          Size applied — {SIZE_HOURS[estimate.suggestedSize]}h
         </div>
       ) : (
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex items-center gap-2 pt-1 flex-wrap">
           {canAccept && (
             <Button
               size="sm"
               className="h-7 text-xs"
-              onClick={onAccept}
+              onClick={() => onAccept(overriding ? overrideSize : undefined)}
               disabled={accepting}
             >
-              {accepting ? "Applying…" : `Apply ${estimate.suggestedSize}`}
+              {accepting ? "Applying…" : `Apply ${appliedSize} (${hours}h)`}
+            </Button>
+          )}
+          {canAccept && !overriding && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1"
+              onClick={() => setOverriding(true)}
+            >
+              <Pencil className="h-3 w-3" />
+              Override
+            </Button>
+          )}
+          {overriding && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs"
+              onClick={() => { setOverriding(false); setOverrideSize(estimate.suggestedSize); }}
+            >
+              Cancel override
             </Button>
           )}
           <Button

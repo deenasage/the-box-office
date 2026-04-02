@@ -2,7 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
-import { UserRole } from "@prisma/client";
+import { UserRole, TicketSize } from "@prisma/client";
+
+const VALID_SIZES = new Set<string>(Object.values(TicketSize));
 
 export async function POST(
   _req: NextRequest,
@@ -26,6 +28,15 @@ export async function POST(
   if (estimate.ticketId !== id) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (estimate.accepted) return NextResponse.json({ error: "Already accepted" }, { status: 409 });
 
+  // Optional override: caller may supply a different size to apply instead of suggestedSize
+  let appliedSize = estimate.suggestedSize;
+  try {
+    const body = await _req.json() as { overrideSize?: unknown };
+    if (body.overrideSize && typeof body.overrideSize === "string" && VALID_SIZES.has(body.overrideSize)) {
+      appliedSize = body.overrideSize as TicketSize;
+    }
+  } catch { /* no body — fine */ }
+
   await db.$transaction(async (tx) => {
     await tx.aIEstimate.update({
       where: { id: estimateId },
@@ -37,9 +48,9 @@ export async function POST(
     });
     await tx.ticket.update({
       where: { id },
-      data: { size: estimate.suggestedSize },
+      data: { size: appliedSize },
     });
   });
 
-  return NextResponse.json({ accepted: true, appliedSize: estimate.suggestedSize });
+  return NextResponse.json({ accepted: true, appliedSize });
 }

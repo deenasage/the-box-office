@@ -7,7 +7,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { useRef, useState, useEffect, useCallback } from "react";
 import {
   KanbanTicket, TEAM_COLORS, PRIORITY_COLORS, SIZE_LABELS,
-  AGING_THRESHOLD_DAYS, COLUMNS, getInitials, daysSince,
+  AGING_THRESHOLD_DAYS, COLUMNS, HUB_SHORT, getInitials, daysSince,
 } from "./types";
 import {
   Tooltip, TooltipTrigger, TooltipContent, TooltipProvider,
@@ -199,6 +199,11 @@ export function KanbanCard({
             {ticket.size && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
                 {SIZE_LABELS[ticket.size]}
+              </span>
+            )}
+            {ticket.hub && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-500/20 font-medium">
+                {HUB_SHORT[ticket.hub]}
               </span>
             )}
             {isAging && (

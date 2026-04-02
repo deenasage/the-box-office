@@ -12,7 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { TicketStatus, Team, TicketSize } from "@prisma/client";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { TicketStatus, Team, TicketSize, Hub } from "@prisma/client";
 import { TicketComments } from "@/components/tickets/TicketComments";
 
 interface PanelTicket {
@@ -25,6 +26,7 @@ interface PanelTicket {
   team: Team | null;
   priority: number;
   size: TicketSize | null;
+  hub: Hub | null;
   createdAt: string;
   updatedAt: string;
   assignee: { id: string; name: string; email: string } | null;
@@ -67,6 +69,11 @@ const TEAM_STYLES: Record<Team, string> = {
 const SIZE_LABELS: Record<TicketSize, string> = {
   XS: "XS", S: "S", M: "M", L: "L", XL: "XL", XXL: "XXL",
 };
+
+const HUB_LABELS: Record<Hub, string> = {
+  NA_HUB: "NA Hub", EU_HUB: "EU Hub", UKIA_HUB: "UKIA Hub",
+};
+const ALL_HUBS = Object.values(Hub);
 
 const PRIORITY_LABELS = ["Low", "Normal", "High", "Critical"];
 const PRIORITY_STYLES = [
@@ -273,26 +280,27 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
 
               {/* Quick status change */}
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Move to</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {ALL_STATUSES.map((s) => (
-                    <button
-                      key={s}
-                      disabled={saving || s === ticket.status}
-                      onClick={() => void handleStatusChange(s)}
-                      className={cn(
-                        "text-xs px-2 py-0.5 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed",
-                        s === ticket.status
-                          ? "border-primary bg-primary/10 text-primary font-semibold"
-                          : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                      )}
-                      aria-pressed={s === ticket.status}
-                      aria-label={`Set status to ${STATUS_LABELS[s]}`}
-                    >
-                      {STATUS_LABELS[s]}
-                    </button>
-                  ))}
-                </div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</p>
+                <Select
+                  value={ticket.status}
+                  onValueChange={(v) => void handleStatusChange(v as TicketStatus)}
+                  disabled={saving}
+                >
+                  <SelectTrigger className="h-8 text-xs w-44" aria-label="Change status">
+                    <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded", STATUS_STYLES[ticket.status])}>
+                      {STATUS_LABELS[ticket.status]}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ALL_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s} className="text-xs">
+                        <span className={cn("text-xs font-medium px-1.5 py-0.5 rounded", STATUS_STYLES[s])}>
+                          {STATUS_LABELS[s]}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Badges row */}
@@ -329,6 +337,33 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
                     <dd className="text-foreground">{ticket.sprint.name}</dd>
                   </div>
                 )}
+                <div className="flex gap-2 items-center">
+                  <dt className="text-muted-foreground w-20 shrink-0">Hub</dt>
+                  <dd>
+                    <Select
+                      value={ticket.hub ?? "_none"}
+                      onValueChange={(v) => {
+                        const hub = v === "_none" ? null : v as Hub;
+                        setTicket((t) => t ? { ...t, hub } : t);
+                        void fetch(`/api/tickets/${ticketId}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ hub }),
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-32 border-dashed">
+                        <span className="truncate">{ticket.hub ? HUB_LABELS[ticket.hub] : "No hub"}</span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none" className="text-xs text-muted-foreground">No hub</SelectItem>
+                        {ALL_HUBS.map((h) => (
+                          <SelectItem key={h} value={h} className="text-xs">{HUB_LABELS[h]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </dd>
+                </div>
                 {ticket.epic && (
                   <div className="flex gap-2">
                     <dt className="text-muted-foreground w-20 shrink-0">Epic</dt>

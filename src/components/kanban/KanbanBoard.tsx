@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { TicketStatus, Team } from "@prisma/client";
-import { KanbanTicket, GroupBy, COLUMNS, PRIORITY_GROUP_LABELS } from "./types";
+import { KanbanTicket, GroupBy, COLUMNS, PRIORITY_GROUP_LABELS, Hub, HUB_LABELS } from "./types";
 import { KanbanColumn, SwimlaneRow } from "./KanbanColumn";
 import { KanbanTicketPanel } from "./KanbanTicketPanel";
 import { notify } from "@/lib/toast";
@@ -51,18 +51,20 @@ const TEAM_LABELS: Record<Team, string> = {
   ANALYTICS:  "Analytics",
 };
 
-interface Filters { team: Team | ""; sprintId: string; assigneeId: string }
+interface Filters { team: Team | ""; sprintId: string; assigneeId: string; hub: Hub | "" }
 
 const FILTERS_STORAGE_KEY = "ticket-intake:kanban-filters";
 const GROUPBY_STORAGE_KEY = "ticket-intake:kanban-groupby";
 
+const EMPTY_FILTERS: Filters = { team: "", sprintId: "", assigneeId: "", hub: "" };
+
 function loadFilters(): Filters {
-  if (typeof window === "undefined") return { team: "", sprintId: "", assigneeId: "" };
+  if (typeof window === "undefined") return { ...EMPTY_FILTERS };
   try {
     const raw = localStorage.getItem(FILTERS_STORAGE_KEY);
-    if (!raw) return { team: "", sprintId: "", assigneeId: "" };
-    return { team: "", sprintId: "", assigneeId: "", ...(JSON.parse(raw) as Partial<Filters>) };
-  } catch { return { team: "", sprintId: "", assigneeId: "" }; }
+    if (!raw) return { ...EMPTY_FILTERS };
+    return { ...EMPTY_FILTERS, ...(JSON.parse(raw) as Partial<Filters>) };
+  } catch { return { ...EMPTY_FILTERS }; }
 }
 
 function loadGroupBy(): GroupBy {
@@ -80,9 +82,9 @@ function KanbanBoardInner() {
   const [tickets, setTickets] = useState<KanbanTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sprints, setSprints] = useState<{ id: string; name: string }[]>([]);
+  const [sprints, setSprints] = useState<{ id: string; name: string; isActive?: boolean }[]>([]);
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
-  const [filters, setFilters] = useState<Filters>({ team: "", sprintId: "", assigneeId: "" });
+  const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS });
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [filtersLoaded, setFiltersLoaded] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -91,6 +93,8 @@ function KanbanBoardInner() {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [showCarryoverOnly, setShowCarryoverOnly] = useState(false);
+  const [showAiPendingOnly, setShowAiPendingOnly] = useState(false);
+  const [showUnsizedOnly, setShowUnsizedOnly] = useState(false);
   const [wipLimits, setWipLimits] = useState<Record<string, number | null>>({});
   const [announcement, setAnnouncement] = useState("");
 
@@ -106,6 +110,7 @@ function KanbanBoardInner() {
     if (f.team) params.set("team", f.team);
     if (f.sprintId) params.set("sprintId", f.sprintId);
     if (f.assigneeId) params.set("assigneeId", f.assigneeId);
+    if (f.hub) params.set("hub", f.hub);
     try {
       const res = await fetch(`/api/tickets?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to load");
@@ -123,9 +128,10 @@ function KanbanBoardInner() {
     const urlTeam = (searchParams.get("team") ?? "") as Team | "";
     const urlSprintId = searchParams.get("sprintId") ?? "";
     const urlAssigneeId = searchParams.get("assigneeId") ?? "";
-    const hasUrlFilters = urlTeam || urlSprintId || urlAssigneeId;
+    const urlHub = (searchParams.get("hub") ?? "") as Hub | "";
+    const hasUrlFilters = urlTeam || urlSprintId || urlAssigneeId || urlHub;
     if (hasUrlFilters) {
-      setFilters({ team: urlTeam, sprintId: urlSprintId, assigneeId: urlAssigneeId });
+      setFilters({ team: urlTeam, sprintId: urlSprintId, assigneeId: urlAssigneeId, hub: urlHub });
     } else {
       setFilters(loadFilters());
     }
@@ -147,11 +153,28 @@ function KanbanBoardInner() {
 
   useEffect(() => {
     if (!filtersLoaded) return;
-    void fetchTickets(filters);
-    fetch("/api/sprints?limit=50")
-      .then((r) => r.json())
-      .then((j: { data: { id: string; name: string }[] }) => setSprints(j.data ?? []))
-      .catch(() => {});
+
+    // Load sprints, then resolve the effective sprint filter (saved > active sprint > none)
+    // and kick off the ticket fetch with the correct filter in a single flow.
+    void (async () => {
+      let effectiveFilters = filters;
+      try {
+        const r = await fetch("/api/sprints?limit=50");
+        const j = (await r.json()) as { data: { id: string; name: string; isActive?: boolean }[] };
+        const list = j.data ?? [];
+        setSprints(list);
+        if (!filters.sprintId) {
+          const active = list.find((s) => s.isActive);
+          if (active) {
+            effectiveFilters = { ...filters, sprintId: active.id };
+            setFilters(effectiveFilters);
+            try { localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(effectiveFilters)); } catch { /* ignore */ }
+          }
+        }
+      } catch { /* non-fatal */ }
+      void fetchTickets(effectiveFilters);
+    })();
+
     fetch("/api/users")
       .then((r) => r.json())
       .then((j: { id: string; name: string }[]) => setUsers(Array.isArray(j) ? j : []))
@@ -174,6 +197,7 @@ function KanbanBoardInner() {
     if (next.team) params.set("team", next.team);
     if (next.sprintId) params.set("sprintId", next.sprintId);
     if (next.assigneeId) params.set("assigneeId", next.assigneeId);
+    if (next.hub) params.set("hub", next.hub);
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     void fetchTickets(next);
@@ -284,10 +308,11 @@ function KanbanBoardInner() {
     }
   }
 
-  // Apply carryover filter — when active, only show tickets where isCarryover === true
-  const visibleTickets = showCarryoverOnly
-    ? tickets.filter((t) => t.isCarryover)
-    : tickets;
+  // Apply filters
+  let visibleTickets = tickets;
+  if (showCarryoverOnly) visibleTickets = visibleTickets.filter((t) => t.isCarryover);
+  if (showAiPendingOnly) visibleTickets = visibleTickets.filter((t) => t.hasPendingEstimate);
+  if (showUnsizedOnly) visibleTickets = visibleTickets.filter((t) => !t.size);
 
   // Swimlane groups (computed only when groupBy !== "none")
   const swimlaneGroups = groupBy === "none" ? [] : (() => {
@@ -501,11 +526,27 @@ function KanbanBoardInner() {
               {users.map((u) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select
+            value={filters.hub || "_all"}
+            onValueChange={(v) => applyFilter({ hub: (!v || v === "_all" ? "" : v) as Hub | "" })}
+          >
+            <SelectTrigger className="h-8 w-36 text-sm" aria-label="Filter by hub">
+              <span data-slot="select-value" className="flex flex-1 text-left truncate">
+                {filters.hub ? (HUB_LABELS[filters.hub] ?? filters.hub) : "All Hubs"}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">All Hubs</SelectItem>
+              {(Object.values(Hub) as Hub[]).map((h) => (
+                <SelectItem key={h} value={h}>{HUB_LABELS[h]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <button
             onClick={() => {
               try { localStorage.removeItem(FILTERS_STORAGE_KEY); localStorage.removeItem(GROUPBY_STORAGE_KEY); } catch { /* ignore */ }
               setGroupBy("none");
-              applyFilter({ team: "", sprintId: "", assigneeId: "" });
+              applyFilter({ ...EMPTY_FILTERS });
             }}
             className="text-xs text-muted-foreground hover:text-foreground underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1 py-0.5"
           >
@@ -522,6 +563,30 @@ function KanbanBoardInner() {
             )}
           >
             Carryover only
+          </button>
+          <button
+            onClick={() => setShowAiPendingOnly((v) => !v)}
+            aria-pressed={showAiPendingOnly}
+            className={cn(
+              "text-xs px-2.5 py-1 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              showAiPendingOnly
+                ? "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/30"
+                : "border-border text-muted-foreground hover:text-foreground"
+            )}
+          >
+            AI sizing pending
+          </button>
+          <button
+            onClick={() => setShowUnsizedOnly((v) => !v)}
+            aria-pressed={showUnsizedOnly}
+            className={cn(
+              "text-xs px-2.5 py-1 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              showUnsizedOnly
+                ? "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30"
+                : "border-border text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Unsized
           </button>
           <span className="ml-auto text-xs text-muted-foreground">
             {visibleTickets.length} ticket{visibleTickets.length !== 1 ? "s" : ""}

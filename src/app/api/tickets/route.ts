@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 import { detectTeam } from "@/lib/routing";
 import { evaluateConditions } from "@/lib/form-logic";
-import { Team, TicketSize, TicketStatus, Prisma } from "@prisma/client";
+import { Team, TicketSize, TicketStatus, Hub, Prisma } from "@prisma/client";
 import type { ConditionalRule, FormFieldConfig } from "@/types";
 
 const createSchema = z.object({
@@ -14,6 +14,7 @@ const createSchema = z.object({
   formData: z.record(z.string(), z.unknown()).optional(),
   templateId: z.string().optional(),
   team: z.nativeEnum(Team).optional(),
+  hub: z.nativeEnum(Hub).optional(),
   priority: z.number().int().min(0).max(3).optional(),
   // Optional fields for quick-create flow
   assigneeId: z.string().optional(),
@@ -58,6 +59,16 @@ export async function GET(req: NextRequest) {
     status = statusParsed.data;
   }
 
+  let hub: Hub | undefined;
+  const hubParam = searchParams.get("hub") || undefined;
+  if (hubParam !== undefined) {
+    const hubParsed = z.nativeEnum(Hub).safeParse(hubParam);
+    if (!hubParsed.success) {
+      return NextResponse.json({ error: "Invalid hub" }, { status: 400 });
+    }
+    hub = hubParsed.data;
+  }
+
   const sprintId = searchParams.get("sprintId");
   const assigneeId = searchParams.get("assigneeId");
   const search = searchParams.get("search");
@@ -70,6 +81,7 @@ export async function GET(req: NextRequest) {
   const where = {
     ...(team ? { team } : {}),
     ...(status ? { status } : {}),
+    ...(hub ? { hub } : {}),
     ...(sprintId === "null"
       ? { sprintId: null }
       : sprintId
@@ -104,6 +116,11 @@ export async function GET(req: NextRequest) {
           take: 1,
           select: { changedAt: true },
         },
+        aiEstimates: {
+          where: { accepted: false },
+          select: { id: true },
+          take: 1,
+        },
       },
       orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
       take: limit,
@@ -112,9 +129,10 @@ export async function GET(req: NextRequest) {
     db.ticket.count({ where }),
   ]);
 
-  const data = tickets.map(({ statusHistory, ...ticket }) => ({
+  const data = tickets.map(({ statusHistory, aiEstimates, ...ticket }) => ({
     ...ticket,
     cycleStartedAt: statusHistory[0]?.changedAt ?? null,
+    hasPendingEstimate: aiEstimates.length > 0,
   }));
 
   return NextResponse.json({ data, total, page, limit });
@@ -135,7 +153,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { title, description, templateId, team: manualTeam, priority, assigneeId, size, sprintId, status } = parsed.data;
+  const { title, description, templateId, team: manualTeam, hub, priority, assigneeId, size, sprintId, status } = parsed.data;
   let { formData } = parsed.data;
 
   // Validate assigneeId and sprintId before any further work
@@ -209,6 +227,7 @@ export async function POST(req: NextRequest) {
         templateId,
         priority: priority ?? 0,
         creatorId: session.user.id,
+        ...(hub !== undefined ? { hub } : {}),
         ...(status !== undefined ? { status } : {}),
         ...(assigneeId !== undefined ? { assigneeId } : {}),
         ...(size !== undefined ? { size } : {}),

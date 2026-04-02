@@ -1,10 +1,9 @@
 // SPEC: ai-estimation.md
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { SizeBadge } from "@/components/tickets/SizeBadge";
 import { Sparkles, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 import { TicketSize, UserRole } from "@prisma/client";
 import { EstimateResult } from "./EstimateResult";
@@ -29,6 +28,18 @@ export function AIEstimatePanel({ ticketId, currentSize, userRole }: AIEstimateP
 
   const canAccept = userRole === UserRole.ADMIN || userRole === UserRole.TEAM_LEAD;
 
+  // Load the most recent pending estimate on mount so seeded/bulk estimates surface automatically
+  useEffect(() => {
+    fetch(`/api/tickets/${ticketId}/estimates`)
+      .then((r) => r.ok ? r.json() as Promise<AIEstimate[]> : Promise.reject())
+      .then((all) => {
+        const pending = all.find((e) => !e.accepted);
+        if (pending) setEstimate(pending);
+        setHistory(all);
+      })
+      .catch(() => {/* non-fatal */});
+  }, [ticketId]);
+
   async function requestEstimate() {
     setLoading(true);
     setError(null);
@@ -39,7 +50,8 @@ export function AIEstimatePanel({ ticketId, currentSize, userRole }: AIEstimateP
       if (!res.ok) {
         setError(data.error ?? "Estimation failed.");
       } else {
-        setEstimate(data);
+        setEstimate(data as AIEstimate);
+        setHistory(null); // reset so next history load fetches fresh
       }
     } catch {
       setError("Network error — please try again.");
@@ -48,16 +60,20 @@ export function AIEstimatePanel({ ticketId, currentSize, userRole }: AIEstimateP
     }
   }
 
-  async function acceptEstimate() {
+  async function acceptEstimate(overrideSize?: TicketSize) {
     if (!estimate) return;
     setAccepting(true);
     try {
+      const body = overrideSize && overrideSize !== estimate.suggestedSize
+        ? { overrideSize }
+        : undefined;
       const res = await fetch(`/api/tickets/${ticketId}/estimates/${estimate.id}/accept`, {
         method: "POST",
+        ...(body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}),
       });
       if (res.ok) {
         setEstimate({ ...estimate, accepted: true, acceptedAt: new Date().toISOString() });
-        // Refresh to reflect updated size badge in parent
+        setHistory(null); // reset history so it refetches with accepted state
         router.refresh();
       }
     } finally {
@@ -77,7 +93,7 @@ export function AIEstimatePanel({ ticketId, currentSize, userRole }: AIEstimateP
     setHistoryLoading(true);
     try {
       const res = await fetch(`/api/tickets/${ticketId}/estimates`);
-      if (res.ok) setHistory(await res.json());
+      if (res.ok) setHistory(await res.json() as AIEstimate[]);
     } finally {
       setHistoryLoading(false);
       setShowHistory(true);
@@ -99,7 +115,7 @@ export function AIEstimatePanel({ ticketId, currentSize, userRole }: AIEstimateP
           className="h-7 text-xs gap-1"
         >
           <Sparkles className="h-3 w-3" />
-          {loading ? "Estimating…" : estimate ? "Re-estimate" : "Estimate with AI"}
+          {loading ? "Estimating…" : estimate && !estimate.accepted ? "Re-estimate" : "Estimate with AI"}
         </Button>
       </div>
 
@@ -116,9 +132,15 @@ export function AIEstimatePanel({ ticketId, currentSize, userRole }: AIEstimateP
           estimate={estimate}
           canAccept={canAccept}
           accepting={accepting}
-          onAccept={() => void acceptEstimate()}
+          onAccept={(overrideSize) => void acceptEstimate(overrideSize)}
           onDismiss={() => void dismissEstimate()}
         />
+      )}
+
+      {!estimate && !dismissed && !loading && (
+        <p className="text-xs text-muted-foreground">
+          No pending estimate. Click &ldquo;Estimate with AI&rdquo; to get a size suggestion.
+        </p>
       )}
 
       {/* History toggle */}
@@ -138,7 +160,7 @@ export function AIEstimatePanel({ ticketId, currentSize, userRole }: AIEstimateP
             history.map((h) => (
               <div key={h.id} className="flex items-center justify-between text-xs border rounded px-3 py-2">
                 <div className="flex items-center gap-2">
-                  <SizeBadge size={h.suggestedSize} />
+                  <span className="font-mono font-semibold">{h.suggestedSize}</span>
                   <span className="text-muted-foreground">{Math.round(h.confidence * 100)}% confidence</span>
                   {h.accepted && (
                     <span className="text-[#008146] dark:text-[#00D93A] flex items-center gap-0.5">
