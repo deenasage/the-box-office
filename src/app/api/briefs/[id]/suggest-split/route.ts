@@ -7,7 +7,7 @@
 // Response: { data: { epic, tickets } }
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { BriefStatus, UserRole } from "@prisma/client";
 import claude from "@/lib/ai/claude-client";
@@ -135,7 +135,7 @@ export async function POST(
 
   const isAdminOrLead =
     session.user.role === UserRole.ADMIN ||
-    session.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session.user.role as UserRole);
 
   if (!isAdminOrLead) {
     return NextResponse.json(

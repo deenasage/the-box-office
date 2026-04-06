@@ -54,8 +54,17 @@ enum FieldType {
 
 enum UserRole {
   ADMIN
-  TEAM_LEAD
-  MEMBER
+  TEAM_LEAD_CRAFT
+  TEAM_LEAD_STAKEHOLDER
+  MEMBER_CRAFT
+  MEMBER_STAKEHOLDER
+}
+
+enum StakeholderTeam {
+  DIGITAL_DELIVERY
+  WEB_STRATEGY
+  ECOM
+  OPTIMIZATION
 }
 
 enum DependencyType {
@@ -136,8 +145,9 @@ model User {
   email        String         @unique
   name         String
   password     String         /// bcrypt hash — empty string for SSO-only accounts
-  role         UserRole       @default(MEMBER)
-  team         Team?          /// null = admin with no team affiliation
+  role             UserRole        @default(MEMBER_CRAFT)
+  team             Team?           /// null = admin/stakeholder with no craft team
+  stakeholderTeam  StakeholderTeam? /// only set for TEAM_LEAD_STAKEHOLDER / MEMBER_STAKEHOLDER roles
   defaultHoursPerDay      Float?         /// personal capacity default: hours worked per day (e.g. 8)
   defaultWorkdaysPerWeek  Int?           /// personal capacity default: days worked per week (e.g. 5)
   createdAt    DateTime       @default(now())

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { isPrivileged } from "@/lib/role-helpers";
 import { Button } from "@/components/ui/button";
 import { Sparkles, CheckCircle2, Zap } from "lucide-react";
 import { UserRole } from "@prisma/client";
@@ -37,7 +38,7 @@ export function SprintSuggestionPanel({ briefId, ticketCount, userRole }: Sprint
   const [applied, setApplied] = useState(false);
   const [confirmApply, setConfirmApply] = useState(false);
 
-  const canApply = userRole === UserRole.ADMIN || userRole === UserRole.TEAM_LEAD;
+  const canApply = isPrivileged(userRole);
 
   async function suggest() {
     setLoading(true);

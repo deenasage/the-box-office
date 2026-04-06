@@ -1,7 +1,7 @@
 // SPEC: capacity-planning.md
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { Prisma, UserRole } from "@prisma/client";
 
 // DELETE /api/sprints/[id]/capacity/[userId]
@@ -14,7 +14,7 @@ export async function DELETE(
 ) {
   const { session, error } = await requireAuth();
   if (error) return error;
-  if (session.user.role !== UserRole.ADMIN && session.user.role !== UserRole.TEAM_LEAD) {
+  if (session.user.role !== UserRole.ADMIN && !isTeamLead(session.user.role as UserRole)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

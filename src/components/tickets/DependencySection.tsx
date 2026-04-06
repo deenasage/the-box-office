@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { isPrivileged } from "@/lib/role-helpers";
 import { Button } from "@/components/ui/button";
 import { Plus, Loader2 } from "lucide-react";
 import { SequencingWarning } from "@/lib/dependencies";
@@ -22,7 +23,7 @@ export function DependencySection({ ticketId, userRole }: DependencySectionProps
   const [showAdd, setShowAdd] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canManage = userRole === "ADMIN" || userRole === "TEAM_LEAD";
+  const canManage = isPrivileged(userRole);
 
   const fetchDeps = useCallback(async () => {
     setLoading(true);

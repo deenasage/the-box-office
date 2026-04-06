@@ -3,7 +3,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { isTeamLead } from "@/lib/role-helpers";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ComponentType } from "react";
 import { signOut } from "next-auth/react";
 import { cn, getInitials } from "@/lib/utils";
@@ -12,7 +13,7 @@ import {
   LayoutDashboard, Zap, Map, Settings,
   LogOut, FileText, BarChart3, Users, Briefcase,
   UserCheck, GitBranch, Layers, History, Upload,
-  Kanban,
+  Kanban, Eye,
 } from "lucide-react";
 import { UserRole, Team } from "@prisma/client";
 
@@ -61,9 +62,28 @@ const ADMIN_ITEMS = [
   { href: "/admin/import", label: "Import", icon: Upload },
 ];
 
-export function SidebarNav({ user }: { user: NavUser }) {
+export function SidebarNav({
+  user,
+  adminViewMode = "craft",
+}: {
+  user: NavUser;
+  adminViewMode?: "craft" | "stakeholder";
+}) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [viewMode, setViewMode] = useState<"craft" | "stakeholder">(adminViewMode);
   const [activeSprint, setActiveSprint] = useState<{ name: string; pct: number } | null>(null);
+
+  async function toggleViewMode() {
+    const next = viewMode === "craft" ? "stakeholder" : "craft";
+    await fetch("/api/admin/view-mode", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: next }),
+    });
+    setViewMode(next);
+    router.refresh();
+  }
 
   useEffect(() => {
     fetch("/api/sprints")
@@ -135,7 +155,7 @@ export function SidebarNav({ user }: { user: NavUser }) {
           </Link>
         ))}
 
-        {(user.role === UserRole.ADMIN || user.role === UserRole.TEAM_LEAD) && (
+        {(user.role === UserRole.ADMIN || isTeamLead(user.role)) && (
           <>
             <div className="pt-3 pb-1 px-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/80">
@@ -185,6 +205,26 @@ export function SidebarNav({ user }: { user: NavUser }) {
           </div>
         )}
       </nav>
+
+      {/* Admin view-mode toggle — only visible to ADMIN role */}
+      {user.role === UserRole.ADMIN && (
+        <div className="px-3 pb-2">
+          <button
+            type="button"
+            onClick={() => void toggleViewMode()}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs transition-colors bg-sidebar-accent/60 hover:bg-sidebar-accent text-sidebar-foreground/80 hover:text-sidebar-foreground"
+            title={`Switch to ${viewMode === "craft" ? "stakeholder" : "craft"} view`}
+          >
+            <Eye className="h-3.5 w-3.5 shrink-0" />
+            <span className="flex-1 text-left truncate">
+              View: <span className="font-medium capitalize">{viewMode}</span>
+            </span>
+            <span className="text-[10px] text-sidebar-foreground/50">
+              {viewMode === "craft" ? "→ Stakeholder" : "→ Craft"}
+            </span>
+          </button>
+        </div>
+      )}
 
       <div className="border-t border-sidebar-border px-3 py-3 flex items-center gap-2.5">
         <Avatar className="h-7 w-7">

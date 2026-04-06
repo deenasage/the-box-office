@@ -27,6 +27,8 @@ interface PanelTicket {
   priority: number;
   size: TicketSize | null;
   hub: Hub | null;
+  tier: string | null;
+  category: string | null;
   createdAt: string;
   updatedAt: string;
   assignee: { id: string; name: string; email: string } | null;
@@ -102,17 +104,22 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
   const [carryoverSaving, setCarryoverSaving] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [currentUserName, setCurrentUserName] = useState<string>("");
+  const [tierOptions, setTierOptions] = useState<string[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
 
   useEffect(() => {
     fetch("/api/users/me")
       .then((r) => r.ok ? r.json() as Promise<{ id: string; name: string; email: string }> : Promise.reject())
-      .then((user) => {
-        setCurrentUserId(user.id);
-        setCurrentUserName(user.name);
-      })
-      .catch(() => {
-        // Non-fatal — comments will simply not render until user is loaded
-      });
+      .then((user) => { setCurrentUserId(user.id); setCurrentUserName(user.name); })
+      .catch(() => {});
+    fetch("/api/list-values?key=tier")
+      .then((r) => r.json())
+      .then((j: { data: { value: string }[] }) => setTierOptions((j.data ?? []).map((v) => v.value)))
+      .catch(() => {});
+    fetch("/api/list-values?key=category")
+      .then((r) => r.json())
+      .then((j: { data: { value: string }[] }) => setCategoryOptions((j.data ?? []).map((v) => v.value)))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -364,6 +371,60 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
                     </Select>
                   </dd>
                 </div>
+                {tierOptions.length > 0 && (
+                  <div className="flex gap-2 items-center">
+                    <dt className="text-muted-foreground w-20 shrink-0">Tier</dt>
+                    <dd>
+                      <Select
+                        value={ticket.tier ?? "_none"}
+                        onValueChange={(v) => {
+                          const tier = v === "_none" ? null : v;
+                          setTicket((t) => t ? { ...t, tier } : t);
+                          void fetch(`/api/tickets/${ticketId}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ tier }),
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-xs w-32 border-dashed">
+                          <span className="truncate">{ticket.tier ?? "No tier"}</span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_none" className="text-xs text-muted-foreground">No tier</SelectItem>
+                          {tierOptions.map((t) => <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </dd>
+                  </div>
+                )}
+                {categoryOptions.length > 0 && (
+                  <div className="flex gap-2 items-center">
+                    <dt className="text-muted-foreground w-20 shrink-0">Category</dt>
+                    <dd>
+                      <Select
+                        value={ticket.category ?? "_none"}
+                        onValueChange={(v) => {
+                          const category = v === "_none" ? null : v;
+                          setTicket((t) => t ? { ...t, category } : t);
+                          void fetch(`/api/tickets/${ticketId}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ category }),
+                          });
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-xs w-32 border-dashed">
+                          <span className="truncate">{ticket.category ?? "No category"}</span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_none" className="text-xs text-muted-foreground">No category</SelectItem>
+                          {categoryOptions.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </dd>
+                  </div>
+                )}
                 {ticket.epic && (
                   <div className="flex gap-2">
                     <dt className="text-muted-foreground w-20 shrink-0">Epic</dt>

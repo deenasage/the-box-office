@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { isTeamLead } from "@/lib/role-helpers";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { Team, TicketStatus, UserRole } from "@prisma/client";
@@ -62,7 +63,7 @@ export function useTicketBoard({
 
   const isAdminOrLead =
     currentUser?.role === UserRole.ADMIN ||
-    currentUser?.role === UserRole.TEAM_LEAD;
+    isTeamLead(currentUser?.role as UserRole);
 
   // Fetch WIP configs once on mount
   useEffect(() => {

@@ -3,7 +3,7 @@
 // PATCH /api/briefs/[id]/comments/[commentId]
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
@@ -21,7 +21,7 @@ function canResolveComments(
   return (
     session.user.id === creatorId ||
     session.user.role === UserRole.ADMIN ||
-    session.user.role === UserRole.TEAM_LEAD
+    isTeamLead(session.user.role as UserRole)
   );
 }
 

@@ -2,9 +2,11 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { SIZE_HOURS } from "@/lib/utils";
 import { TicketSize, Prisma } from "@prisma/client";
 import { MyWorkClient } from "@/components/my-work/MyWorkClient";
+import { isCraftView } from "@/lib/role-helpers";
 
 export interface UserCapacityDefaults {
   defaultHoursPerDay: number;
@@ -81,6 +83,17 @@ export default async function MyWorkPage({
 
   const userId = session.user.id;
   const last7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const last30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  // Determine view mode: craft = tickets assigned to me; stakeholder = tickets I submitted
+  const cookieStore = await cookies();
+  const adminViewMode = cookieStore.get("adminViewMode")?.value ?? null;
+  const craftMode = isCraftView(session.user.role, adminViewMode);
+
+  // Build the ticket ownership filter for this user based on their role/view mode
+  const ownershipFilter = craftMode
+    ? { assigneeId: userId }
+    : { OR: [{ creatorId: userId }, { assigneeId: userId }] };
 
   let openTicketsRaw: WorkTicketRow[];
   let recentDoneRaw: WorkTicketRow[];
@@ -89,19 +102,23 @@ export default async function MyWorkPage({
   try {
     [openTicketsRaw, recentDoneRaw, upcomingDeadlines] = await Promise.all([
       db.ticket.findMany({
-        where: { assigneeId: userId, status: { notIn: ["DONE"] } },
+        where: { ...ownershipFilter, status: { notIn: ["DONE"] } },
         include: ticketInclude,
         orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
       }),
       db.ticket.findMany({
-        where: { assigneeId: userId, status: "DONE", updatedAt: { gte: last7 } },
+        where: {
+          ...ownershipFilter,
+          status: "DONE",
+          updatedAt: { gte: craftMode ? last7 : last30 },
+        },
         include: ticketInclude,
         orderBy: { updatedAt: "desc" },
         take: 10,
       }),
       db.ticket.findMany({
         where: {
-          assigneeId: userId,
+          ...ownershipFilter,
           dueDate: { not: null },
           status: { notIn: ["DONE"] },
         },

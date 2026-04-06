@@ -1,6 +1,6 @@
 // SPEC: ai-brief.md
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { BriefStatus, UserRole } from "@prisma/client";
@@ -18,7 +18,7 @@ function canMutate(
   return (
     session.user.id === creatorId ||
     session.user.role === UserRole.ADMIN ||
-    session.user.role === UserRole.TEAM_LEAD
+    isTeamLead(session.user.role as UserRole)
   );
 }
 
@@ -59,7 +59,7 @@ export async function GET(
 
   const isAdmin =
     session.user.role === UserRole.ADMIN ||
-    session.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session.user.role as UserRole);
 
   if (!isAdmin && brief.creatorId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

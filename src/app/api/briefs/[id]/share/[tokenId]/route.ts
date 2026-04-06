@@ -4,7 +4,7 @@
 // DELETE /api/briefs/[id]/share/[tokenId]  — delete token entirely
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
@@ -27,7 +27,7 @@ async function resolveAndAuthorise(
   const canManage =
     session.user.id === brief.creatorId ||
     session.user.role === UserRole.ADMIN ||
-    session.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session.user.role as UserRole);
 
   if (!canManage) {
     return { ok: false as const, response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };

@@ -1,6 +1,7 @@
 // SPEC: portfolio-view.md
 // SPEC: design-improvements.md
 import { notFound } from "next/navigation";
+import { isTeamLead } from "@/lib/role-helpers";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { InitiativeDetail } from "@/components/portfolio/InitiativeDetail";
@@ -132,7 +133,7 @@ export default async function InitiativeDetailPage({ params }: PageProps) {
   };
   const canSync =
     session?.user.role === UserRole.ADMIN ||
-    session?.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session?.user.role as UserRole);
   const canEdit = canSync;
 
   return (

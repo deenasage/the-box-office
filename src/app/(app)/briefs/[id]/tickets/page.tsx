@@ -1,5 +1,6 @@
 // SPEC: smart-tickets.md
 import { db } from "@/lib/db";
+import { isTeamLead } from "@/lib/role-helpers";
 import { auth } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
@@ -28,7 +29,7 @@ export default async function BriefTicketsPage({
 
   const isAdmin =
     session?.user.role === UserRole.ADMIN ||
-    session?.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session?.user.role as UserRole);
 
   if (!isAdmin && brief.creatorId !== session?.user.id) notFound();
 

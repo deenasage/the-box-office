@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { UserRole, TicketStatus } from "@prisma/client";
 
 const commitAssignmentSchema = z.object({
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const role = session.user.role;
-  if (role !== UserRole.ADMIN && role !== UserRole.TEAM_LEAD) {
+  if (role !== UserRole.ADMIN && !isTeamLead(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

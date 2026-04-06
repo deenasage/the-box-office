@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { UserRole, TicketStatus } from "@prisma/client";
 
 export async function POST(
@@ -20,8 +20,7 @@ export async function POST(
   const { session, error } = await requireAuth();
   if (error) return error;
   if (
-    session.user.role !== UserRole.ADMIN &&
-    session.user.role !== UserRole.TEAM_LEAD
+    !isPrivileged(session.user.role as UserRole)
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

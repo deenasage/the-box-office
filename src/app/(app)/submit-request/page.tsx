@@ -3,6 +3,7 @@
 // In-app Submit Request page — intake form + brief drafts + my tickets in one place.
 
 import { auth } from "@/lib/auth";
+import { isTeamLead } from "@/lib/role-helpers";
 import { db } from "@/lib/db";
 import { BriefStatus, TicketStatus, UserRole } from "@prisma/client";
 import Link from "next/link";
@@ -64,7 +65,7 @@ export default async function SubmitRequestPage({
   const session = await auth();
   const isAdmin =
     session?.user.role === UserRole.ADMIN ||
-    session?.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session?.user.role as UserRole);
 
   // Derive the brief status filter for the drafts tab.
   // Filter pills use "REVIEW" as the URL param but it maps to the REVIEW enum value.

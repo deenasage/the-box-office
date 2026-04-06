@@ -3,7 +3,7 @@
 // GET /api/briefs/[id]/comments  — list all comments for a brief
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 
@@ -16,7 +16,7 @@ function canViewComments(
   return (
     session.user.id === creatorId ||
     session.user.role === UserRole.ADMIN ||
-    session.user.role === UserRole.TEAM_LEAD
+    isTeamLead(session.user.role as UserRole)
   );
 }
 

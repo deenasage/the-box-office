@@ -51,12 +51,12 @@ const TEAM_LABELS: Record<Team, string> = {
   ANALYTICS:  "Analytics",
 };
 
-interface Filters { team: Team | ""; sprintId: string; assigneeId: string; hub: Hub | "" }
+interface Filters { team: Team | ""; sprintId: string; assigneeId: string; hub: Hub | ""; tier: string; category: string }
 
 const FILTERS_STORAGE_KEY = "ticket-intake:kanban-filters";
 const GROUPBY_STORAGE_KEY = "ticket-intake:kanban-groupby";
 
-const EMPTY_FILTERS: Filters = { team: "", sprintId: "", assigneeId: "", hub: "" };
+const EMPTY_FILTERS: Filters = { team: "", sprintId: "", assigneeId: "", hub: "", tier: "", category: "" };
 
 function loadFilters(): Filters {
   if (typeof window === "undefined") return { ...EMPTY_FILTERS };
@@ -84,6 +84,8 @@ function KanbanBoardInner() {
   const [error, setError] = useState<string | null>(null);
   const [sprints, setSprints] = useState<{ id: string; name: string; isActive?: boolean }[]>([]);
   const [users, setUsers] = useState<{ id: string; name: string }[]>([]);
+  const [tierOptions, setTierOptions] = useState<string[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
   const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS });
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [filtersLoaded, setFiltersLoaded] = useState(false);
@@ -111,6 +113,8 @@ function KanbanBoardInner() {
     if (f.sprintId) params.set("sprintId", f.sprintId);
     if (f.assigneeId) params.set("assigneeId", f.assigneeId);
     if (f.hub) params.set("hub", f.hub);
+    if (f.tier) params.set("tier", f.tier);
+    if (f.category) params.set("category", f.category);
     try {
       const res = await fetch(`/api/tickets?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to load");
@@ -129,9 +133,11 @@ function KanbanBoardInner() {
     const urlSprintId = searchParams.get("sprintId") ?? "";
     const urlAssigneeId = searchParams.get("assigneeId") ?? "";
     const urlHub = (searchParams.get("hub") ?? "") as Hub | "";
-    const hasUrlFilters = urlTeam || urlSprintId || urlAssigneeId || urlHub;
+    const urlTier = searchParams.get("tier") ?? "";
+    const urlCategory = searchParams.get("category") ?? "";
+    const hasUrlFilters = urlTeam || urlSprintId || urlAssigneeId || urlHub || urlTier || urlCategory;
     if (hasUrlFilters) {
-      setFilters({ team: urlTeam, sprintId: urlSprintId, assigneeId: urlAssigneeId, hub: urlHub });
+      setFilters({ team: urlTeam, sprintId: urlSprintId, assigneeId: urlAssigneeId, hub: urlHub, tier: urlTier, category: urlCategory });
     } else {
       setFilters(loadFilters());
     }
@@ -178,6 +184,14 @@ function KanbanBoardInner() {
     fetch("/api/users")
       .then((r) => r.json())
       .then((j: { id: string; name: string }[]) => setUsers(Array.isArray(j) ? j : []))
+      .catch(() => {});
+    fetch("/api/list-values?key=tier")
+      .then((r) => r.json())
+      .then((j: { data: { value: string }[] }) => setTierOptions((j.data ?? []).map((v) => v.value)))
+      .catch(() => {});
+    fetch("/api/list-values?key=category")
+      .then((r) => r.json())
+      .then((j: { data: { value: string }[] }) => setCategoryOptions((j.data ?? []).map((v) => v.value)))
       .catch(() => {});
     fetch("/api/kanban/wip-limits")
       .then((r) => r.json())
@@ -542,6 +556,38 @@ function KanbanBoardInner() {
               ))}
             </SelectContent>
           </Select>
+          {tierOptions.length > 0 && (
+            <Select
+              value={filters.tier || "_all"}
+              onValueChange={(v) => applyFilter({ tier: !v || v === "_all" ? "" : v })}
+            >
+              <SelectTrigger className="h-8 w-32 text-sm" aria-label="Filter by tier">
+                <span data-slot="select-value" className="flex flex-1 text-left truncate">
+                  {filters.tier || "All Tiers"}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">All Tiers</SelectItem>
+                {tierOptions.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          {categoryOptions.length > 0 && (
+            <Select
+              value={filters.category || "_all"}
+              onValueChange={(v) => applyFilter({ category: !v || v === "_all" ? "" : v })}
+            >
+              <SelectTrigger className="h-8 w-36 text-sm" aria-label="Filter by category">
+                <span data-slot="select-value" className="flex flex-1 text-left truncate">
+                  {filters.category || "All Categories"}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">All Categories</SelectItem>
+                {categoryOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
           <button
             onClick={() => {
               try { localStorage.removeItem(FILTERS_STORAGE_KEY); localStorage.removeItem(GROUPBY_STORAGE_KEY); } catch { /* ignore */ }

@@ -1,6 +1,6 @@
 // SPEC: capacity-ai.md
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole , Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -17,7 +17,7 @@ export async function POST(
   if (error) return error;
 
   const { role } = session.user;
-  if (role !== UserRole.ADMIN && role !== UserRole.TEAM_LEAD) {
+  if (role !== UserRole.ADMIN && !isTeamLead(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

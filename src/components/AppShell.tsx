@@ -25,9 +25,10 @@ interface AppShellUser {
 interface AppShellProps {
   user: AppShellUser;
   children: React.ReactNode;
+  adminViewMode?: "craft" | "stakeholder";
 }
 
-export function AppShell({ user, children }: AppShellProps) {
+export function AppShell({ user, children, adminViewMode = "craft" }: AppShellProps) {
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
@@ -48,7 +49,7 @@ export function AppShell({ user, children }: AppShellProps) {
         Skip to main content
       </a>
 
-      <SidebarNav user={user} />
+      <SidebarNav user={user} adminViewMode={adminViewMode} />
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">

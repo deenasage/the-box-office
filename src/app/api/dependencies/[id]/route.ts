@@ -1,7 +1,7 @@
 // SPEC: dependencies.md
 // DELETE /api/dependencies/[id] — ADMIN or TEAM_LEAD — delete a dependency
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 
@@ -12,8 +12,7 @@ export async function DELETE(
   const { session, error } = await requireAuth();
   if (error) return error;
   if (
-    session.user.role !== UserRole.ADMIN &&
-    session.user.role !== UserRole.TEAM_LEAD
+    !isPrivileged(session.user.role as UserRole)
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

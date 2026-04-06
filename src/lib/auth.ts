@@ -43,7 +43,7 @@ const oidcProvider = ssoEnabled
           email: profile.email,
           name: profile.name ?? profile.preferred_username ?? profile.email,
           // role/team are filled in by the jwt callback after DB upsert
-          role: "MEMBER" as UserRole,
+          role: "MEMBER_CRAFT" as UserRole,
           team: null as Team | null,
         };
       },

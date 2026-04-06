@@ -4,7 +4,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserRole, Team } from "@prisma/client";
+import { UserRole, Team, StakeholderTeam } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { TEAM_LABELS } from "@/lib/constants";
 import { UserSkillsetsEditor } from "@/components/skillsets/UserSkillsetsEditor";
+import { ROLE_LABELS } from "@/lib/role-helpers";
+import { isTeamLead } from "@/lib/role-helpers";
 
 export interface UserRow {
   id: string;
@@ -31,6 +33,7 @@ export interface UserRow {
   email: string;
   role: UserRole;
   team: Team | null;
+  stakeholderTeam?: StakeholderTeam | null;
   skillsets?: { id: string; name: string; color: string }[];
 }
 
@@ -39,12 +42,19 @@ interface EditUserDialogProps {
   open: boolean;
   onClose: () => void;
   onSaved: (updated: UserRow) => void;
-  /** ADMIN or TEAM_LEAD = editable; MEMBER = read-only chips */
+  /** ADMIN or TEAM_LEAD = editable; MEMBER_CRAFT = read-only chips */
   editorRole?: UserRole;
 }
 
-const ROLES: UserRole[] = [UserRole.ADMIN, UserRole.TEAM_LEAD, UserRole.MEMBER];
-const TEAMS: Team[] = [
+const ALL_ROLES: UserRole[] = [
+  UserRole.ADMIN,
+  UserRole.TEAM_LEAD_CRAFT,
+  UserRole.TEAM_LEAD_STAKEHOLDER,
+  UserRole.MEMBER_CRAFT,
+  UserRole.MEMBER_STAKEHOLDER,
+];
+
+const CRAFT_TEAMS: Team[] = [
   Team.CONTENT,
   Team.DESIGN,
   Team.SEO,
@@ -52,21 +62,42 @@ const TEAMS: Team[] = [
   Team.PAID_MEDIA,
   Team.ANALYTICS,
 ];
+
+const STAKEHOLDER_TEAM_LABELS: Record<StakeholderTeam, string> = {
+  DIGITAL_DELIVERY: "Digital Delivery",
+  WEB_STRATEGY: "Web Strategy",
+  ECOM: "Ecom",
+  OPTIMIZATION: "Optimization",
+};
+
 const NO_TEAM_SENTINEL = "__none__";
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: "Admin",
-  TEAM_LEAD: "Team Lead",
-  MEMBER: "Member",
-};
+function isCraftRole(role: UserRole) {
+  return role === UserRole.MEMBER_CRAFT || role === UserRole.TEAM_LEAD_CRAFT;
+}
+
+function isStakeholderRole(role: UserRole) {
+  return role === UserRole.MEMBER_STAKEHOLDER || role === UserRole.TEAM_LEAD_STAKEHOLDER;
+}
 
 export function EditUserDialog({ user, open, onClose, onSaved, editorRole = UserRole.ADMIN }: EditUserDialogProps) {
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [role, setRole] = useState<UserRole>(user.role);
   const [team, setTeam] = useState<Team | null>(user.team);
+  const [stakeholderTeam, setStakeholderTeam] = useState<StakeholderTeam | null>(
+    user.stakeholderTeam ?? null
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function handleRoleChange(newRole: UserRole) {
+    setRole(newRole);
+    // Clear incompatible team when switching modes
+    if (isCraftRole(newRole)) setStakeholderTeam(null);
+    if (isStakeholderRole(newRole)) setTeam(null);
+    if (newRole === UserRole.ADMIN) { setTeam(null); setStakeholderTeam(null); }
+  }
 
   async function handleSave() {
     if (!name.trim()) {
@@ -85,7 +116,8 @@ export function EditUserDialog({ user, open, onClose, onSaved, editorRole = User
           name: name.trim(),
           email: email.trim() || undefined,
           role,
-          team,
+          team: isCraftRole(role) ? team : null,
+          stakeholderTeam: isStakeholderRole(role) ? stakeholderTeam : null,
         }),
       });
 
@@ -107,10 +139,6 @@ export function EditUserDialog({ user, open, onClose, onSaved, editorRole = User
     } finally {
       setSaving(false);
     }
-  }
-
-  function handleTeamChange(value: string | null) {
-    setTeam(!value || value === NO_TEAM_SENTINEL ? null : (value as Team));
   }
 
   return (
@@ -144,12 +172,12 @@ export function EditUserDialog({ user, open, onClose, onSaved, editorRole = User
 
           <div className="space-y-1.5">
             <Label htmlFor="edit-role">Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
+            <Select value={role} onValueChange={(v) => handleRoleChange(v as UserRole)}>
               <SelectTrigger id="edit-role">
                 <SelectValue>{ROLE_LABELS[role]}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {ROLES.map((r) => (
+                {ALL_ROLES.map((r) => (
                   <SelectItem key={r} value={r}>
                     {ROLE_LABELS[r]}
                   </SelectItem>
@@ -158,33 +186,59 @@ export function EditUserDialog({ user, open, onClose, onSaved, editorRole = User
             </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-team">Team</Label>
-            <Select
-              value={team ?? NO_TEAM_SENTINEL}
-              onValueChange={handleTeamChange}
-            >
-              <SelectTrigger id="edit-team">
-                <SelectValue>{team == null ? "No team" : TEAM_LABELS[team]}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={NO_TEAM_SENTINEL}>No team</SelectItem>
-                {TEAMS.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {TEAM_LABELS[t]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Craft team — only for craft roles */}
+          {isCraftRole(role) && (
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-team">Team</Label>
+              <Select
+                value={team ?? NO_TEAM_SENTINEL}
+                onValueChange={(v) => setTeam(v === NO_TEAM_SENTINEL ? null : (v as Team))}
+              >
+                <SelectTrigger id="edit-team">
+                  <SelectValue>{team == null ? "No team" : TEAM_LABELS[team]}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_TEAM_SENTINEL}>No team</SelectItem>
+                  {CRAFT_TEAMS.map((t) => (
+                    <SelectItem key={t} value={t}>{TEAM_LABELS[t]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-          {team === Team.DESIGN && (
+          {/* Stakeholder team — only for stakeholder roles */}
+          {isStakeholderRole(role) && (
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-stakeholder-team">Department</Label>
+              <Select
+                value={stakeholderTeam ?? NO_TEAM_SENTINEL}
+                onValueChange={(v) =>
+                  setStakeholderTeam(v === NO_TEAM_SENTINEL ? null : (v as StakeholderTeam))
+                }
+              >
+                <SelectTrigger id="edit-stakeholder-team">
+                  <SelectValue>
+                    {stakeholderTeam == null ? "No department" : STAKEHOLDER_TEAM_LABELS[stakeholderTeam]}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NO_TEAM_SENTINEL}>No department</SelectItem>
+                  {(Object.keys(STAKEHOLDER_TEAM_LABELS) as StakeholderTeam[]).map((st) => (
+                    <SelectItem key={st} value={st}>{STAKEHOLDER_TEAM_LABELS[st]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {team === Team.DESIGN && isCraftRole(role) && (
             <div className="space-y-1.5 pt-1">
               <UserSkillsetsEditor
                 userId={user.id}
                 userTeam={team ?? ""}
                 initialSkillsets={user.skillsets ?? []}
-                readonly={editorRole === UserRole.MEMBER}
+                readonly={isTeamLead(editorRole)}
               />
             </div>
           )}

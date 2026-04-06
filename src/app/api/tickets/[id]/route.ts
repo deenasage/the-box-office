@@ -22,6 +22,8 @@ const updateSchema = z.object({
   priority: z.number().int().min(0).max(3).optional(),
   team: z.nativeEnum(Team).optional(),
   hub: z.nativeEnum(Hub).nullable().optional(),
+  tier: z.string().nullable().optional(),
+  category: z.string().nullable().optional(),
   assigneeId: z.string().nullable().optional(),
   sprintId: z.string().nullable().optional(),
   epicId: z.string().nullable().optional(),

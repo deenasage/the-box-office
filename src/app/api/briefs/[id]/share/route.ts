@@ -4,7 +4,7 @@
 // GET   /api/briefs/[id]/share  — list all tokens for a brief
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 import { randomBytes } from "crypto";
@@ -23,7 +23,7 @@ function canManageTokens(
   return (
     session.user.id === creatorId ||
     session.user.role === UserRole.ADMIN ||
-    session.user.role === UserRole.TEAM_LEAD
+    isTeamLead(session.user.role as UserRole)
   );
 }
 

@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Team } from "@prisma/client";
+import { isTeamLead as checkIsTeamLead } from "@/lib/role-helpers";
 import {
   Sheet,
   SheetContent,
@@ -38,7 +39,7 @@ export function AutoAssignConfigSheet({
   onPreviewReady,
   loading,
 }: AutoAssignConfigSheetProps) {
-  const isTeamLead = userRole === "TEAM_LEAD";
+  const isTeamLead = checkIsTeamLead(userRole);
 
   // For team leads: locked to their own team. For admins: full selection.
   const availableTeams = isTeamLead && userTeam

@@ -132,7 +132,7 @@ export default async function TicketDetailPage({
       {session && (
         <DependencySection
           ticketId={ticket.id}
-          userRole={session.user.role ?? "MEMBER"}
+          userRole={session.user.role ?? "MEMBER_CRAFT"}
         />
       )}
 

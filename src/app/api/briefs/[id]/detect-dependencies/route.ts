@@ -2,7 +2,7 @@
 // POST /api/briefs/[id]/detect-dependencies — Owner, ADMIN, or TEAM_LEAD — trigger Claude dependency detection
 // Returns AIDetectedDependency[] (not saved — user confirms in a subsequent step)
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { detectDependencies } from "@/lib/ai/dependency-detector";
 import { UserRole } from "@prisma/client";
@@ -38,7 +38,7 @@ export async function POST(
   if (
     brief.creatorId !== userId &&
     role !== UserRole.ADMIN &&
-    role !== UserRole.TEAM_LEAD
+    !isTeamLead(role)
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

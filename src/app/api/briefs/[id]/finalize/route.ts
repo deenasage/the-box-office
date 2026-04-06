@@ -1,6 +1,6 @@
 // SPEC: ai-brief.md
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { BriefStatus, UserRole } from "@prisma/client";
 import type { ClarificationItem } from "@/lib/ai/brief-generator";
@@ -14,7 +14,7 @@ function canMutate(
   return (
     session.user.id === creatorId ||
     session.user.role === UserRole.ADMIN ||
-    session.user.role === UserRole.TEAM_LEAD
+    isTeamLead(session.user.role as UserRole)
   );
 }
 

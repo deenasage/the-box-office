@@ -4,7 +4,7 @@
 // Response: { data: { status: EpicStatus } }
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { UserRole } from "@prisma/client";
 import { syncEpicStatus } from "@/lib/epic-status";
 import { db } from "@/lib/db";
@@ -16,8 +16,7 @@ export async function POST(
   const { session, error } = await requireAuth();
   if (error) return error;
   if (
-    session.user.role !== UserRole.ADMIN &&
-    session.user.role !== UserRole.TEAM_LEAD
+    !isPrivileged(session.user.role as UserRole)
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

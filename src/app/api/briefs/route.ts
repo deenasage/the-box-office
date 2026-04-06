@@ -1,6 +1,6 @@
 // SPEC: ai-brief.md
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { UserRole, BriefStatus } from "@prisma/client";
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
   const isAdmin =
     session.user.role === UserRole.ADMIN ||
-    session.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session.user.role as UserRole);
 
   const briefs = await db.brief.findMany({
     where: {

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { UserRole, Team, TicketSize, TicketStatus, DependencyType } from "@prisma/client";
 import { SIZE_HOURS } from "@/lib/utils";
 
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const role = session.user.role;
-  if (role !== UserRole.ADMIN && role !== UserRole.TEAM_LEAD) {
+  if (role !== UserRole.ADMIN && !isTeamLead(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
   // BUG-24: TEAM_LEAD is always scoped to their own team. ADMIN can use any teamFilter.
   let teamFilterArray: Team[] | undefined;
-  if (role === UserRole.TEAM_LEAD && session.user.team) {
+  if (isTeamLead(role) && session.user.team) {
     // Lock TEAM_LEAD to their own team regardless of what they sent
     teamFilterArray = [session.user.team as Team];
   } else {

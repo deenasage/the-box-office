@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { isTeamLead } from "@/lib/role-helpers";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,7 @@ export function CapacityTable({
 
   const canEdit = (userTeam: Team | null) => {
     if (currentUserRole === UserRole.ADMIN) return true;
-    if (currentUserRole === UserRole.TEAM_LEAD && userTeam === currentUserTeam) return true;
+    if (isTeamLead(currentUserRole as UserRole) && userTeam === currentUserTeam) return true;
     return false;
   };
 

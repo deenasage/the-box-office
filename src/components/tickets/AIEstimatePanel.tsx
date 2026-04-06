@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { isPrivileged } from "@/lib/role-helpers";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
@@ -26,7 +27,7 @@ export function AIEstimatePanel({ ticketId, currentSize, userRole }: AIEstimateP
   const [history, setHistory] = useState<AIEstimate[] | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const canAccept = userRole === UserRole.ADMIN || userRole === UserRole.TEAM_LEAD;
+  const canAccept = isPrivileged(userRole);
 
   // Load the most recent pending estimate on mount so seeded/bulk estimates surface automatically
   useEffect(() => {

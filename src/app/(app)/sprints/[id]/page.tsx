@@ -1,6 +1,7 @@
 // SPEC: sprints.md
 // SPEC: design-improvements.md
 import { db } from "@/lib/db";
+import { isTeamLead } from "@/lib/role-helpers";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { formatDate, SIZE_HOURS } from "@/lib/utils";
@@ -132,7 +133,7 @@ export default async function SprintDetailPage({
 
   const isAdminOrLead =
     session?.user.role === UserRole.ADMIN ||
-    session?.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session?.user.role as UserRole);
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
@@ -150,7 +151,7 @@ export default async function SprintDetailPage({
                 sprintName={sprint.name}
                 isActive={sprint.isActive}
                 ticketCount={sprint.tickets.length}
-                userRole={session?.user.role ?? UserRole.MEMBER}
+                userRole={session?.user.role ?? UserRole.MEMBER_CRAFT}
               />
               <CloneSprintButton sprintId={sprint.id} variant="labelled" />
               {/* Divider separates primary sprint actions from the destructive close action */}

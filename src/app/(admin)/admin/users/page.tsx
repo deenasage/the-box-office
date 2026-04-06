@@ -2,7 +2,6 @@
 // SPEC: users.md
 // SPEC: skillsets.md
 import { db } from "@/lib/db";
-import { UserRole, Team } from "@prisma/client";
 import { UsersTable } from "@/components/users/UsersTable";
 
 export default async function AdminUsersPage() {
@@ -14,6 +13,7 @@ export default async function AdminUsersPage() {
       email: true,
       role: true,
       team: true,
+      stakeholderTeam: true,
       skillsets: {
         select: {
           skillset: { select: { id: true, name: true, color: true } },
@@ -28,6 +28,7 @@ export default async function AdminUsersPage() {
     email: u.email,
     role: u.role,
     team: u.team,
+    stakeholderTeam: u.stakeholderTeam,
     skillsets: u.skillsets.map((us) => us.skillset),
   }));
 
@@ -42,9 +43,7 @@ export default async function AdminUsersPage() {
         </div>
       </div>
 
-      <UsersTable
-        initialUsers={mapped as Array<{ id: string; name: string; email: string; role: UserRole; team: Team | null; skillsets?: { id: string; name: string; color: string }[] }>}
-      />
+      <UsersTable initialUsers={mapped} />
     </div>
   );
 }

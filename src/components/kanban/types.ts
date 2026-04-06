@@ -10,6 +10,8 @@ export interface KanbanTicket {
   status: TicketStatus;
   team: Team | null;
   hub: Hub | null;
+  tier: string | null;
+  category: string | null;
   priority: number;
   size: TicketSize | null;
   updatedAt: string;

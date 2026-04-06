@@ -2,6 +2,7 @@
 // SPEC: gtm-brief-generator.md
 // SPEC: design-improvements.md
 import { auth } from "@/lib/auth";
+import { isTeamLead } from "@/lib/role-helpers";
 import { db } from "@/lib/db";
 import { BriefStatus, UserRole } from "@prisma/client";
 import Link from "next/link";
@@ -44,7 +45,7 @@ export default async function BriefsPage({
 
   const isAdmin =
     session?.user.role === UserRole.ADMIN ||
-    session?.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session?.user.role as UserRole);
 
   const briefs = await db.brief.findMany({
     where: {

@@ -63,7 +63,7 @@ async function main() {
       email: "lead.content@ticketintake.com",
       name: "Casey Content",
       password: leadPassword,
-      role: "TEAM_LEAD",
+      role: "TEAM_LEAD_CRAFT",
       team: "CONTENT",
     },
   });
@@ -73,7 +73,7 @@ async function main() {
       email: "lead.design@ticketintake.com",
       name: "Dana Design",
       password: leadPassword,
-      role: "TEAM_LEAD",
+      role: "TEAM_LEAD_CRAFT",
       team: "DESIGN",
     },
   });
@@ -83,7 +83,7 @@ async function main() {
       email: "lead.seo@ticketintake.com",
       name: "Sam SEO",
       password: leadPassword,
-      role: "TEAM_LEAD",
+      role: "TEAM_LEAD_CRAFT",
       team: "SEO",
     },
   });
@@ -93,7 +93,7 @@ async function main() {
       email: "lead.wem@ticketintake.com",
       name: "Wren WEM",
       password: leadPassword,
-      role: "TEAM_LEAD",
+      role: "TEAM_LEAD_CRAFT",
       team: "WEM",
     },
   });
@@ -104,7 +104,7 @@ async function main() {
       email: "alex.morgan@ticketintake.com",
       name: "Alex Morgan",
       password: memberPassword,
-      role: "MEMBER",
+      role: "MEMBER_CRAFT",
       team: "DESIGN",
     },
   });
@@ -114,7 +114,7 @@ async function main() {
       email: "jamie.park@ticketintake.com",
       name: "Jamie Park",
       password: memberPassword,
-      role: "MEMBER",
+      role: "MEMBER_CRAFT",
       team: "DESIGN",
     },
   });
@@ -124,7 +124,7 @@ async function main() {
       email: "taylor.brooks@ticketintake.com",
       name: "Taylor Brooks",
       password: memberPassword,
-      role: "MEMBER",
+      role: "MEMBER_CRAFT",
       team: "DESIGN",
     },
   });
@@ -134,7 +134,7 @@ async function main() {
       email: "riley.chen@ticketintake.com",
       name: "Riley Chen",
       password: memberPassword,
-      role: "MEMBER",
+      role: "MEMBER_CRAFT",
       team: "DESIGN",
     },
   });
@@ -145,7 +145,7 @@ async function main() {
       email: "jordan.hayes@ticketintake.com",
       name: "Jordan Hayes",
       password: memberPassword,
-      role: "MEMBER",
+      role: "MEMBER_CRAFT",
       team: "CONTENT",
     },
   });
@@ -155,7 +155,7 @@ async function main() {
       email: "morgan.lee@ticketintake.com",
       name: "Morgan Lee",
       password: memberPassword,
-      role: "MEMBER",
+      role: "MEMBER_CRAFT",
       team: "CONTENT",
     },
   });
@@ -165,7 +165,7 @@ async function main() {
       email: "avery.silva@ticketintake.com",
       name: "Avery Silva",
       password: memberPassword,
-      role: "MEMBER",
+      role: "MEMBER_CRAFT",
       team: "CONTENT",
     },
   });

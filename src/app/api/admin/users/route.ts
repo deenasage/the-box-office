@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
-import { UserRole, Team, Prisma } from "@prisma/client";
+import { UserRole, Team, StakeholderTeam, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const userSelect = {
@@ -16,6 +16,7 @@ const userSelect = {
   email: true,
   role: true,
   team: true,
+  stakeholderTeam: true,
   createdAt: true,
 } as const;
 
@@ -25,6 +26,7 @@ const CreateUserSchema = z.object({
   password: z.string().min(8),
   role: z.nativeEnum(UserRole),
   team: z.nativeEnum(Team).optional(),
+  stakeholderTeam: z.nativeEnum(StakeholderTeam).optional(),
 });
 
 // GET /api/admin/users — ADMIN only
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { name, email, password, role, team } = parsed.data;
+  const { name, email, password, role, team, stakeholderTeam } = parsed.data;
   const passwordHash = await bcrypt.hash(password, 12);
 
   try {
@@ -74,6 +76,7 @@ export async function POST(req: NextRequest) {
         password: passwordHash,
         role,
         team: team ?? null,
+        stakeholderTeam: stakeholderTeam ?? null,
       },
       select: userSelect,
     });

@@ -1,6 +1,7 @@
 // SPEC: sprints.md
 // SPEC: design-improvements.md
 import { db } from "@/lib/db";
+import { isTeamLead } from "@/lib/role-helpers";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,7 @@ export default async function SprintsPage({ searchParams }: PageProps) {
   const session = await auth();
   const isAdminOrLead =
     session?.user.role === UserRole.ADMIN ||
-    session?.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session?.user.role as UserRole);
 
   const { tab = "sprints" } = await searchParams;
   const activeTab =
@@ -120,7 +121,7 @@ export default async function SprintsPage({ searchParams }: PageProps) {
                             sprintName={sprint.name}
                             isActive={false}
                             ticketCount={sprint.tickets.length}
-                            userRole={session?.user.role ?? UserRole.MEMBER}
+                            userRole={session?.user.role ?? UserRole.MEMBER_CRAFT}
                           />
                         )}
                       </div>

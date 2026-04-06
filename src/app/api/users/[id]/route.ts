@@ -6,18 +6,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/api-helpers";
-import { UserRole, Team , Prisma } from "@prisma/client";
+import { requireAuth, isTeamLead } from "@/lib/api-helpers";
+import { UserRole, Team, StakeholderTeam, Prisma } from "@prisma/client";
 
 const UpdateUserSchema = z.object({
   name: z.string().min(1, "Name must not be empty").max(255).optional(),
   email: z.string().email("Invalid email address").max(255).optional(),
   role: z.nativeEnum(UserRole).optional(),
   team: z.nativeEnum(Team).nullable().optional(),
+  stakeholderTeam: z.nativeEnum(StakeholderTeam).nullable().optional(),
 });
 
 function requireAdminOrLead(role: UserRole): NextResponse | null {
-  if (role !== UserRole.ADMIN && role !== UserRole.TEAM_LEAD) {
+  if (role !== UserRole.ADMIN && !isTeamLead(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return null;
@@ -54,7 +55,7 @@ export async function PATCH(
   }
 
   // TEAM_LEADs may only update name — not role or team
-  if (session.user.role === UserRole.TEAM_LEAD) {
+  if (isTeamLead(session.user.role as UserRole)) {
     if (parsed.data.role !== undefined || parsed.data.team !== undefined) {
       return NextResponse.json(
         { error: "Team leads may only update a user's name" },
@@ -70,7 +71,7 @@ export async function PATCH(
   }
 
   // TEAM_LEADs cannot modify an ADMIN user
-  if (session.user.role === UserRole.TEAM_LEAD && existing.role === UserRole.ADMIN) {
+  if (isTeamLead(session.user.role as UserRole) && existing.role === UserRole.ADMIN) {
     return NextResponse.json({ error: "Cannot modify an admin user" }, { status: 403 });
   }
 
@@ -84,6 +85,7 @@ export async function PATCH(
         email: true,
         role: true,
         team: true,
+        stakeholderTeam: true,
         createdAt: true,
         updatedAt: true,
       },

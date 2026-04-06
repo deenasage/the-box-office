@@ -1,6 +1,7 @@
 // SPEC: ai-brief.md
 // SPEC: gtm-brief-generator.md
 import { db } from "@/lib/db";
+import { isTeamLead } from "@/lib/role-helpers";
 import { auth } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { BriefDetail } from "@/components/briefs/BriefDetail";
@@ -39,7 +40,7 @@ export default async function BriefDetailPage({
 
   const isAdmin =
     session?.user.role === UserRole.ADMIN ||
-    session?.user.role === UserRole.TEAM_LEAD;
+    isTeamLead(session?.user.role as UserRole);
 
   if (!isAdmin && brief.creatorId !== session?.user.id) notFound();
 

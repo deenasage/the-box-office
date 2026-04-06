@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { RoadmapItemStatus, UserRole } from "@prisma/client";
 
 const patchSchema = z.object({
@@ -30,8 +30,7 @@ export async function PATCH(
   const { session, error } = await requireAuth();
   if (error) return error;
   if (
-    session.user.role !== UserRole.ADMIN &&
-    session.user.role !== UserRole.TEAM_LEAD
+    !isPrivileged(session.user.role as UserRole)
   ) {
     return NextResponse.json({ error: "Forbidden — admin or team lead required" }, { status: 403 });
   }
@@ -65,8 +64,7 @@ export async function DELETE(
   const { session, error } = await requireAuth();
   if (error) return error;
   if (
-    session.user.role !== UserRole.ADMIN &&
-    session.user.role !== UserRole.TEAM_LEAD
+    !isPrivileged(session.user.role as UserRole)
   ) {
     return NextResponse.json({ error: "Forbidden — admin or team lead required" }, { status: 403 });
   }

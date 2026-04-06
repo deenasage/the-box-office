@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
 
   // MEMBER role: only sees epics for their team or unassigned epics
   const isMember =
-    session.user.role === UserRole.MEMBER && session.user.team;
+    session.user.role === UserRole.MEMBER_CRAFT && session.user.team;
 
   // Build Prisma where clause
   const where: Prisma.EpicWhereInput = {};

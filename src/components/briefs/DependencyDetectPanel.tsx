@@ -2,6 +2,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { isPrivileged } from "@/lib/role-helpers";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Loader2, CheckCircle2, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -122,7 +123,7 @@ export function DependencyDetectPanel({
     confirmAll,
   } = useDependencyDetect(briefId);
 
-  const canConfirm = userRole === "ADMIN" || userRole === "TEAM_LEAD";
+  const canConfirm = isPrivileged(userRole);
 
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">

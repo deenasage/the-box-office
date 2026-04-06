@@ -8,15 +8,26 @@ import { Badge } from "@/components/ui/badge";
 import { Pencil, Plus } from "lucide-react";
 import { EditUserDialog, UserRow } from "./EditUserDialog";
 import { CreateUserDialog } from "./CreateUserDialog";
+import { ROLE_LABELS } from "@/lib/role-helpers";
+import { TEAM_LABELS } from "@/lib/constants";
 
 interface UsersTableProps {
   initialUsers: UserRow[];
 }
 
-const ROLE_VARIANT: Record<UserRole, "default" | "secondary" | "outline"> = {
+const STAKEHOLDER_TEAM_LABELS: Record<string, string> = {
+  DIGITAL_DELIVERY: "Digital Delivery",
+  WEB_STRATEGY: "Web Strategy",
+  ECOM: "Ecom",
+  OPTIMIZATION: "Optimization",
+};
+
+const ROLE_VARIANT: Record<UserRole, "default" | "secondary" | "outline" | "destructive"> = {
   [UserRole.ADMIN]: "default",
-  [UserRole.TEAM_LEAD]: "secondary",
-  [UserRole.MEMBER]: "outline",
+  [UserRole.TEAM_LEAD_CRAFT]: "secondary",
+  [UserRole.TEAM_LEAD_STAKEHOLDER]: "secondary",
+  [UserRole.MEMBER_CRAFT]: "outline",
+  [UserRole.MEMBER_STAKEHOLDER]: "outline",
 };
 
 export function UsersTable({ initialUsers }: UsersTableProps) {
@@ -32,6 +43,13 @@ export function UsersTable({ initialUsers }: UsersTableProps) {
 
   function handleCreated(newUser: UserRow) {
     setUsers((prev) => [...prev, newUser]);
+  }
+
+  function teamLabel(user: UserRow): string {
+    if (user.team) return TEAM_LABELS[user.team] ?? user.team;
+    if (user.stakeholderTeam)
+      return STAKEHOLDER_TEAM_LABELS[user.stakeholderTeam] ?? user.stakeholderTeam;
+    return "";
   }
 
   return (
@@ -50,7 +68,7 @@ export function UsersTable({ initialUsers }: UsersTableProps) {
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Name</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Email</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Role</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Team</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">Team / Dept</th>
               <th className="px-4 py-3 w-20" />
             </tr>
           </thead>
@@ -67,10 +85,10 @@ export function UsersTable({ initialUsers }: UsersTableProps) {
                   <td className="px-4 py-3 font-medium">{user.name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
                   <td className="px-4 py-3">
-                    <Badge variant={ROLE_VARIANT[user.role]}>{user.role}</Badge>
+                    <Badge variant={ROLE_VARIANT[user.role]}>{ROLE_LABELS[user.role]}</Badge>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {user.team ?? <span className="italic">None</span>}
+                    {teamLabel(user) || <span className="italic">None</span>}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Button

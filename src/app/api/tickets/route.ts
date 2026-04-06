@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/api-helpers";
+import { requireAuth, isPrivileged as checkPrivileged } from "@/lib/api-helpers";
 import { detectTeam } from "@/lib/routing";
 import { evaluateConditions } from "@/lib/form-logic";
 import { Team, TicketSize, TicketStatus, Hub, Prisma } from "@prisma/client";
@@ -31,8 +31,7 @@ export async function GET(req: NextRequest) {
 
   // Non-admin, non-team-lead users default to seeing only their own team's tickets
   // unless an explicit ?team= param is provided.
-  const isPrivileged =
-    session.user.role === "ADMIN" || session.user.role === "TEAM_LEAD";
+  const isPrivileged = checkPrivileged(session.user.role);
   const defaultTeam =
     !isPrivileged && !searchParams.get("team") && session.user.team
       ? (session.user.team as Team)
@@ -69,6 +68,8 @@ export async function GET(req: NextRequest) {
     hub = hubParsed.data;
   }
 
+  const tier = searchParams.get("tier") || undefined;
+  const category = searchParams.get("category") || undefined;
   const sprintId = searchParams.get("sprintId");
   const assigneeId = searchParams.get("assigneeId");
   const search = searchParams.get("search");
@@ -82,6 +83,8 @@ export async function GET(req: NextRequest) {
     ...(team ? { team } : {}),
     ...(status ? { status } : {}),
     ...(hub ? { hub } : {}),
+    ...(tier ? { tier } : {}),
+    ...(category ? { category } : {}),
     ...(sprintId === "null"
       ? { sprintId: null }
       : sprintId

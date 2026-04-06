@@ -4,6 +4,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { isPrivileged } from "@/lib/role-helpers";
 import { useRouter } from "next/navigation";
 import { notify } from "@/lib/toast";
 import { AlertTriangle, Share2, CheckCircle2, Loader2, MessageSquare, ListChecks } from "lucide-react";
@@ -71,7 +72,7 @@ export function BriefDetail({ brief: initial, canEdit, userRole }: Props) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isAdminOrLead =
-    userRole === UserRole.ADMIN || userRole === UserRole.TEAM_LEAD;
+    isPrivileged(userRole ?? "");
 
   // Fetch comment count for tab badge (only for shareable statuses)
   useEffect(() => {
@@ -303,7 +304,7 @@ export function BriefDetail({ brief: initial, canEdit, userRole }: Props) {
         <SprintSuggestionPanel
           briefId={brief.id}
           ticketCount={brief.tickets.length}
-          userRole={(userRole ?? UserRole.MEMBER) as UserRole}
+          userRole={(userRole ?? UserRole.MEMBER_CRAFT) as UserRole}
         />
       )}
 
@@ -313,7 +314,7 @@ export function BriefDetail({ brief: initial, canEdit, userRole }: Props) {
           <DependencyDetectPanel
             briefId={brief.id}
             ticketCount={brief.tickets.length}
-            userRole={userRole ?? UserRole.MEMBER}
+            userRole={userRole ?? UserRole.MEMBER_CRAFT}
           />
         )}
 
