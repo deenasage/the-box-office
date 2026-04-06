@@ -9,7 +9,7 @@ interface Crumb {
 
 export function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
+    <nav aria-label="Breadcrumb" className="flex items-baseline gap-1 text-sm text-muted-foreground mb-4">
       {crumbs.map((crumb, i) => (
         <React.Fragment key={crumb.label}>
           {i > 0 && <span className="select-none">/</span>}

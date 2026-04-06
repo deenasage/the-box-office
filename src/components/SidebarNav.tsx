@@ -5,14 +5,14 @@
 import Link from "next/link";
 import { isTeamLead } from "@/lib/role-helpers";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ComponentType } from "react";
+import { type ComponentType } from "react";
 import { signOut } from "next-auth/react";
 import { cn, getInitials } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   LayoutDashboard, Zap, Map, Settings,
   LogOut, FileText, BarChart3, Users, Briefcase,
-  UserCheck, Kanban,
+  User, Kanban,
 } from "lucide-react";
 import { UserRole, Team } from "@prisma/client";
 
@@ -32,7 +32,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/my-work", label: "My Work", icon: UserCheck },
+  { href: "/my-work", label: "My Work", icon: User },
   { href: "/tickets", label: "Tickets", icon: Kanban },
   {
     href: "/submit-request",
@@ -59,22 +59,6 @@ export function SidebarNav({
   adminViewMode?: "craft" | "stakeholder";
 }) {
   const pathname = usePathname();
-  const [activeSprint, setActiveSprint] = useState<{ name: string; pct: number } | null>(null);
-
-  useEffect(() => {
-    fetch("/api/sprints")
-      .then((r) => r.json())
-      .then((res: { data: { isActive: boolean; name: string; ticketCount: number; doneCount: number }[] }) => {
-        const sprints = res.data ?? [];
-        const active = sprints.find((s) => s.isActive);
-        if (!active) return;
-        const total = active.ticketCount ?? 0;
-        const done = active.doneCount ?? 0;
-        const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-        setActiveSprint({ name: active.name, pct });
-      })
-      .catch(() => {});
-  }, []);
 
   const isAdminArea = pathname.startsWith("/admin");
 
@@ -130,27 +114,6 @@ export function SidebarNav({
           </Link>
         ))}
 
-        {activeSprint && (
-          <div className="mx-2.5 mt-3 pt-3 border-t border-sidebar-border space-y-1.5">
-            <div className="flex justify-between text-[11px] text-sidebar-foreground/60">
-              <span className="truncate">{activeSprint.name}</span>
-              <span>{activeSprint.pct}%</span>
-            </div>
-            <div
-              className="w-full bg-sidebar-accent rounded-full h-1"
-              role="progressbar"
-              aria-valuenow={activeSprint.pct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="Sprint progress"
-            >
-              <div
-                className="bg-sidebar-primary h-1 rounded-full transition-all"
-                style={{ width: `${activeSprint.pct}%` }}
-              />
-            </div>
-          </div>
-        )}
       </nav>
 
       {/* Bottom section */}

@@ -14,6 +14,7 @@ export interface KanbanTicket {
   category: string | null;
   priority: number;
   size: TicketSize | null;
+  createdAt: string;
   updatedAt: string;
   cycleStartedAt: string | null;
   isCarryover: boolean;

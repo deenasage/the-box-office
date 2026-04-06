@@ -20,9 +20,10 @@ const PRIORITY_LABELS: Record<number, string> = {
   3: "High",
 };
 
-const CYCLE_TIME_STATUSES = new Set(["IN_PROGRESS", "IN_REVIEW", "BLOCKED"]);
+const CYCLE_TIME_STATUSES = new Set(["BACKLOG", "IN_PROGRESS", "IN_REVIEW", "BLOCKED"]);
 
 const CYCLE_TIME_LABELS: Record<string, string> = {
+  BACKLOG:     "in backlog",
   IN_PROGRESS: "in progress",
   IN_REVIEW:   "in review",
   BLOCKED:     "blocked",
@@ -116,7 +117,11 @@ export function KanbanCard({
   const agingAge = daysSince(ticket.updatedAt);
   const isAging = agingAge > AGING_THRESHOLD_DAYS;
   const isBlocked = ticket.status === "BLOCKED";
-  const cycleAge = ticket.cycleStartedAt !== null ? daysSince(ticket.cycleStartedAt) : null;
+  // BACKLOG age is measured from ticket creation; other active statuses use cycleStartedAt
+  const ageDate = ticket.status === "BACKLOG"
+    ? ticket.createdAt
+    : ticket.cycleStartedAt;
+  const cycleAge = ageDate !== null ? daysSince(ageDate) : null;
   const showCycleTime = CYCLE_TIME_STATUSES.has(ticket.status) && cycleAge !== null && cycleAge > 1;
 
   const [menuPos, setMenuPos] = useState<StatusMenuPosition | null>(null);

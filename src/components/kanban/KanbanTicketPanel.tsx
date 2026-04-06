@@ -13,8 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { TicketStatus, Team, TicketSize, Hub } from "@prisma/client";
 import { TicketComments } from "@/components/tickets/TicketComments";
+import { TicketTimeline, type TimelineEntry } from "@/components/tickets/TicketTimeline";
 
 interface PanelTicket {
   id: string;
@@ -106,6 +108,8 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
   const [currentUserName, setCurrentUserName] = useState<string>("");
   const [tierOptions, setTierOptions] = useState<string[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
+  const [timelineEntries, setTimelineEntries] = useState<TimelineEntry[] | null>(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/users/me")
@@ -193,6 +197,16 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
     }
   }
 
+  function loadTimeline() {
+    if (timelineEntries !== null || timelineLoading) return;
+    setTimelineLoading(true);
+    fetch(`/api/tickets/${ticketId}/status-history`)
+      .then((r) => r.json() as Promise<{ data: TimelineEntry[] }>)
+      .then((j) => setTimelineEntries(j.data ?? []))
+      .catch(() => setTimelineEntries([]))
+      .finally(() => setTimelineLoading(false));
+  }
+
   async function handleCarryoverChange(checked: boolean) {
     if (!ticket || carryoverSaving) return;
     const prev = ticket.isCarryover;
@@ -242,11 +256,9 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
           <div className="flex items-center gap-1">
             <Link
               href={`/tickets/${ticketId}`}
-              target="_blank"
-              rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded hover:bg-muted"
             >
-              Open full page
+              View full screen
               <ExternalLink className="h-3 w-3" />
             </Link>
             <Button
@@ -262,9 +274,9 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
           {loading && (
-            <div className="space-y-3 animate-pulse">
+            <div className="p-4 space-y-3 animate-pulse">
               <div className="h-5 bg-muted rounded w-3/4" />
               <div className="h-4 bg-muted rounded w-1/2" />
               <div className="h-4 bg-muted rounded w-2/3" />
@@ -272,11 +284,17 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
           )}
 
           {error && (
-            <p className="text-sm text-destructive">{error}</p>
+            <p className="p-4 text-sm text-destructive">{error}</p>
           )}
 
           {ticket && (
-            <>
+            <Tabs defaultValue="details" className="flex flex-col flex-1 min-h-0">
+              <TabsList variant="line" className="shrink-0 w-full justify-start border-b rounded-none pb-0 h-auto gap-0 px-4">
+                <TabsTrigger value="details"  className="px-4 py-2 rounded-none">Details</TabsTrigger>
+                <TabsTrigger value="timeline" className="px-4 py-2 rounded-none" onClick={loadTimeline}>Activity</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details" className="flex-1 overflow-y-auto p-4 space-y-4 mt-0">
               {/* Title */}
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Details</p>
@@ -514,7 +532,23 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
                   />
                 </>
               )}
-            </>
+              </TabsContent>
+
+              <TabsContent value="timeline" className="flex-1 overflow-y-auto p-4 mt-0">
+                {timelineLoading ? (
+                  <div className="space-y-3 animate-pulse">
+                    <div className="h-4 bg-muted rounded w-2/3" />
+                    <div className="h-4 bg-muted rounded w-1/2" />
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                  </div>
+                ) : timelineEntries !== null ? (
+                  <TicketTimeline
+                    entries={timelineEntries}
+                    createdAt={ticket.createdAt}
+                  />
+                ) : null}
+              </TabsContent>
+            </Tabs>
           )}
         </div>
       </div>

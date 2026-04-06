@@ -17,7 +17,7 @@ import { TicketActivityTabs } from "@/components/tickets/TicketActivityTabs";
 import { SkillsetBadge } from "@/components/skillsets/SkillsetBadge";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { ArrowLeft } from "lucide-react";
 import { STATUS_LABELS, STATUS_BADGE_STYLES as STATUS_STYLES, PRIORITY_LABELS } from "@/lib/constants";
 
 const PRIORITY_COLORS = ["text-muted-foreground", "text-yellow-600", "text-orange-600", "text-red-600"];
@@ -60,27 +60,44 @@ export default async function TicketDetailPage({
     formData = {};
   }
 
-  const users = await db.user.findMany({
-    select: { id: true, name: true, team: true },
-    orderBy: { name: "asc" },
-  });
-
-  const sprints = await db.sprint.findMany({
-    select: { id: true, name: true, isActive: true },
-    orderBy: { startDate: "desc" },
-  });
+  const [users, sprints, statusHistory] = await Promise.all([
+    db.user.findMany({
+      select: { id: true, name: true, team: true },
+      orderBy: { name: "asc" },
+    }),
+    db.sprint.findMany({
+      select: { id: true, name: true, isActive: true },
+      orderBy: { startDate: "desc" },
+    }),
+    db.ticketStatusHistory.findMany({
+      where: { ticketId: id },
+      orderBy: { changedAt: "asc" },
+      select: {
+        id: true,
+        fromStatus: true,
+        toStatus: true,
+        changedAt: true,
+        changedBy: { select: { name: true } },
+      },
+    }),
+  ]);
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
-      <Breadcrumbs crumbs={[{ label: "Tickets", href: "/tickets" }, { label: ticket.title }]} />
+      {/* Back button */}
+      <Link
+        href={`/tickets?ticket=${ticket.id}`}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Tickets
+      </Link>
 
-      <div className="space-y-4">
+      {/* Title + badges */}
+      <div className="space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <TeamBadge team={ticket.team} />
-          <Badge
-            variant="outline"
-            className={STATUS_STYLES[ticket.status]}
-          >
+          <Badge variant="outline" className={STATUS_STYLES[ticket.status]}>
             {STATUS_LABELS[ticket.status]}
           </Badge>
           <SizeBadge size={ticket.size} />
@@ -209,6 +226,14 @@ export default async function TicketDetailPage({
           currentUserId={session.user.id}
           currentUserName={session.user.name}
           currentUserRole={session.user.role}
+          timelineEntries={statusHistory.map((e) => ({
+            id: e.id,
+            fromStatus: e.fromStatus,
+            toStatus: e.toStatus,
+            changedAt: e.changedAt.toISOString(),
+            changedBy: e.changedBy,
+          }))}
+          createdAt={ticket.createdAt.toISOString()}
         />
       )}
     </div>

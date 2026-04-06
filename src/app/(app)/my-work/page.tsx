@@ -25,6 +25,12 @@ export interface ActiveSprintInfo {
 const ticketInclude = {
   sprint: { select: { id: true, name: true } },
   epic: { select: { id: true, name: true } },
+  statusHistory: {
+    where: { toStatus: "IN_PROGRESS" },
+    orderBy: { changedAt: "asc" as const },
+    take: 1,
+    select: { changedAt: true },
+  },
 } satisfies Prisma.TicketInclude;
 
 type WorkTicketRow = Prisma.TicketGetPayload<{ include: typeof ticketInclude }>;
@@ -37,6 +43,8 @@ export interface SerializedWorkTicket {
   priority: number;
   team: import("@prisma/client").Team;
   dueDate: string | null;
+  createdAt: string;
+  cycleStartedAt: string | null;
   sprint: { id: string; name: string } | null;
   epic: { id: string; name: string } | null;
 }
@@ -50,6 +58,8 @@ function serializeWorkTicket(t: WorkTicketRow): SerializedWorkTicket {
     priority: t.priority,
     team: t.team,
     dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+    createdAt: t.createdAt.toISOString(),
+    cycleStartedAt: t.statusHistory[0]?.changedAt.toISOString() ?? null,
     sprint: t.sprint,
     epic: t.epic,
   };

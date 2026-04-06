@@ -143,6 +143,9 @@ function KanbanBoardInner() {
     }
     setGroupBy(loadGroupBy());
     setFiltersLoaded(true);
+    // Pre-open panel if ?ticket= param is present (e.g. returning from full-screen view)
+    const ticketParam = searchParams.get("ticket");
+    if (ticketParam) setSelectedTicketId(ticketParam);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Persist filters to localStorage when they change
@@ -589,16 +592,6 @@ function KanbanBoardInner() {
             </Select>
           )}
           <button
-            onClick={() => {
-              try { localStorage.removeItem(FILTERS_STORAGE_KEY); localStorage.removeItem(GROUPBY_STORAGE_KEY); } catch { /* ignore */ }
-              setGroupBy("none");
-              applyFilter({ ...EMPTY_FILTERS });
-            }}
-            className="text-xs text-muted-foreground hover:text-foreground underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1 py-0.5"
-          >
-            Reset
-          </button>
-          <button
             onClick={() => setShowCarryoverOnly((v) => !v)}
             aria-pressed={showCarryoverOnly}
             className={cn(
@@ -633,6 +626,19 @@ function KanbanBoardInner() {
             )}
           >
             Unsized
+          </button>
+          <button
+            onClick={() => {
+              try { localStorage.removeItem(FILTERS_STORAGE_KEY); localStorage.removeItem(GROUPBY_STORAGE_KEY); } catch { /* ignore */ }
+              setGroupBy("none");
+              setShowCarryoverOnly(false);
+              setShowAiPendingOnly(false);
+              setShowUnsizedOnly(false);
+              applyFilter({ ...EMPTY_FILTERS });
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1 py-0.5"
+          >
+            Reset
           </button>
           <span className="ml-auto text-xs text-muted-foreground">
             {visibleTickets.length} ticket{visibleTickets.length !== 1 ? "s" : ""}

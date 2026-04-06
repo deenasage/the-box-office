@@ -110,6 +110,28 @@ const STATUS_HEADER: Record<TicketStatus, string> = {
   DONE:        "bg-[#008146]/10 border-[#008146]/30 text-[#008146] dark:bg-[#00D93A]/15 dark:border-[#00D93A]/30 dark:text-[#00D93A]",
 };
 
+// ── Age helpers ───────────────────────────────────────────────────────────────
+
+const AGE_STATUSES = new Set<TicketStatus>(["BACKLOG", "IN_PROGRESS", "IN_REVIEW", "BLOCKED"]);
+
+const AGE_LABELS: Partial<Record<TicketStatus, string>> = {
+  BACKLOG:     "in backlog",
+  IN_PROGRESS: "in progress",
+  IN_REVIEW:   "in review",
+  BLOCKED:     "blocked",
+};
+
+function daysSince(iso: string): number {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+}
+
+function ticketAge(ticket: WorkTicket): number | null {
+  if (!AGE_STATUSES.has(ticket.status)) return null;
+  const anchor = ticket.status === "BACKLOG" ? ticket.createdAt : ticket.cycleStartedAt;
+  if (!anchor) return null;
+  return daysSince(anchor);
+}
+
 // ── Kanban sub-components ──────────────────────────────────────────────────────
 
 function KanbanCard({ ticket, onSelect }: { ticket: WorkTicket; onSelect: (id: string) => void }) {
@@ -117,6 +139,9 @@ function KanbanCard({ ticket, onSelect }: { ticket: WorkTicket; onSelect: (id: s
     id: ticket.id,
     data: { status: ticket.status },
   });
+
+  const age = ticketAge(ticket);
+  const showAge = age !== null && age > 1;
 
   return (
     <div
@@ -137,6 +162,11 @@ function KanbanCard({ ticket, onSelect }: { ticket: WorkTicket; onSelect: (id: s
       <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
         {ticket.title}
       </p>
+      {showAge && (
+        <p className="text-[10px] text-muted-foreground mt-0.5">
+          {age}d {AGE_LABELS[ticket.status]}
+        </p>
+      )}
       <div className="flex items-center justify-between mt-2 gap-1">
         <div className="flex items-center gap-1.5 flex-wrap">
           {ticket.priority > 0 && (
@@ -269,6 +299,9 @@ function KanbanView({
 }
 
 function TicketRow({ ticket, onSelect }: { ticket: WorkTicket; onSelect: (id: string) => void }) {
+  const age = ticketAge(ticket);
+  const showAge = age !== null && age > 1;
+
   return (
     <button
       type="button"
@@ -284,6 +317,11 @@ function TicketRow({ ticket, onSelect }: { ticket: WorkTicket; onSelect: (id: st
       <span className="flex-1 text-sm font-medium line-clamp-1 group-hover:text-primary transition-colors">
         {ticket.title}
       </span>
+      {showAge && (
+        <span className="text-[10px] text-muted-foreground whitespace-nowrap hidden sm:block">
+          {age}d {AGE_LABELS[ticket.status]}
+        </span>
+      )}
       <SizeBadge size={ticket.size} />
       {ticket.sprint && (
         <span className="text-xs text-muted-foreground hidden sm:block truncate max-w-30">

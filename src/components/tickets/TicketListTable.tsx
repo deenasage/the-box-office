@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import type { TicketSummary } from "@/types";
 import { BulkActionBar } from "./BulkActionBar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,7 +26,6 @@ export function TicketListTable({ tickets: initialTickets }: TicketListTableProp
   // Increment to trigger a re-render / data refresh after bulk action
   const [refreshKey, setRefreshKey] = useState(0);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const handleSort = useCallback(
     (key: SortKey) => {
@@ -75,40 +74,13 @@ export function TicketListTable({ tickets: initialTickets }: TicketListTableProp
     });
   }
 
-  function handleTeamChange(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set("team", value);
-    else params.delete("team");
-    router.push(`/tickets/list?${params.toString()}`);
-  }
-
   function handleBulkSuccess() {
     router.refresh();
     setRefreshKey((k) => k + 1);
   }
 
-  const currentTeam = searchParams.get("team") ?? "";
-
   return (
     <div className="space-y-3" key={refreshKey}>
-      {/* Filters row */}
-      <div className="flex items-center gap-2">
-        <select
-          value={currentTeam}
-          onChange={(e) => handleTeamChange(e.target.value)}
-          className="text-sm border rounded-md px-2 py-1.5 bg-background"
-          aria-label="Filter by team"
-        >
-          <option value="">All teams</option>
-          <option value="CONTENT">Content</option>
-          <option value="DESIGN">Design</option>
-          <option value="SEO">SEO</option>
-          <option value="WEM">WEM</option>
-          <option value="PAID_MEDIA">Paid Media</option>
-          <option value="ANALYTICS">Analytics</option>
-        </select>
-      </div>
-
       {/* Bulk action bar — only visible when ≥1 ticket selected */}
       <BulkActionBar
         selectedIds={selectedIds}
