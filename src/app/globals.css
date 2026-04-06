@@ -87,15 +87,15 @@
 
   --radius: 0.5rem;
 
-  /* Sidebar — light mode: soft off-white surface, dark text, brand green selected */
-  --sidebar: #f5f5f5;
-  --sidebar-foreground: #111111;
-  --sidebar-primary: #008146;
+  /* Sidebar — always dark charcoal regardless of theme */
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #d4d4d4;
+  --sidebar-primary: #00c853;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e8e8e8;
-  --sidebar-accent-foreground: #111111;
-  --sidebar-border: #e0e0e0;
-  --sidebar-ring: #008146;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2e2e2e;
+  --sidebar-ring: #00c853;
 }
 
 .dark {
@@ -129,14 +129,14 @@
   --chart-4: oklch(0.60 0.18 250);
   --chart-5: oklch(0.55 0.19 30);
 
-  --sidebar: #000000;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #00D93A;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: oklch(0.18 0 0);
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #d4d4d4;
+  --sidebar-primary: #00c853;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2a2a2a;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: oklch(0.22 0 0);
-  --sidebar-ring: #00D93A;
+  --sidebar-border: #2e2e2e;
+  --sidebar-ring: #00c853;
 }
 
 @layer base {
