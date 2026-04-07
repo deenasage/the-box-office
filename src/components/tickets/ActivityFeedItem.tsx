@@ -6,12 +6,26 @@ import { STATUS_LABELS } from "@/lib/constants";
 import { getInitials } from "@/lib/utils";
 
 const STATUS_COLORS: Record<string, string> = {
-  BACKLOG: "bg-muted-foreground",
-  TODO: "bg-sky-500",
+  BACKLOG:     "bg-slate-400",
+  TODO:        "bg-blue-400",
+  READY:       "bg-sky-400",
   IN_PROGRESS: "bg-violet-500",
-  IN_REVIEW: "bg-amber-500",
-  BLOCKED: "bg-orange-600",
-  DONE: "bg-[#008146]",
+  IN_REVIEW:   "bg-purple-500",
+  BLOCKED:     "bg-red-500",
+  DONE:        "bg-green-500",
+};
+
+const FIELD_LABELS: Record<string, string> = {
+  title:            "Title",
+  description:      "Description",
+  team:             "Team",
+  priority:         "Priority",
+  size:             "Size",
+  assigneeId:       "Assignee",
+  sprintId:         "Sprint",
+  comment_added:    "comment",
+  comment_edited:   "comment",
+  comment_deleted:  "comment",
 };
 
 export type FeedItem =
@@ -29,6 +43,15 @@ export type FeedItem =
       timestamp: string;
       body: string;
       author: { id: string; name: string };
+    }
+  | {
+      kind: "field";
+      id: string;
+      timestamp: string;
+      field: string;
+      oldValue: string | null;
+      newValue: string | null;
+      changedBy: { id: string; name: string };
     };
 
 interface ActivityFeedItemProps {
@@ -54,9 +77,79 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
     );
   }
 
+  if (item.kind === "field") {
+    const truncate = (s: string | null, len = 60) =>
+      s && s.length > len ? s.slice(0, len) + "…" : s;
+
+    if (item.field === "comment_added") {
+      return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="inline-block h-2 w-2 rounded-full shrink-0 bg-border" />
+          <span className="flex-1 min-w-0">
+            <span className="font-medium text-foreground">{item.changedBy.name}</span>
+            {" added a comment"}
+            {item.newValue && (
+              <span className="text-foreground/60"> — {truncate(item.newValue)}</span>
+            )}
+          </span>
+          <span className="ml-auto text-xs whitespace-nowrap shrink-0">{relativeTime}</span>
+        </div>
+      );
+    }
+
+    if (item.field === "comment_deleted") {
+      return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="inline-block h-2 w-2 rounded-full shrink-0 bg-border" />
+          <span className="flex-1 min-w-0">
+            <span className="font-medium text-foreground">{item.changedBy.name}</span>
+            {" deleted a comment"}
+          </span>
+          <span className="ml-auto text-xs whitespace-nowrap shrink-0">{relativeTime}</span>
+        </div>
+      );
+    }
+
+    if (item.field === "comment_edited") {
+      return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="inline-block h-2 w-2 rounded-full shrink-0 bg-border" />
+          <span className="flex-1 min-w-0">
+            <span className="font-medium text-foreground">{item.changedBy.name}</span>
+            {" edited a comment"}
+            {item.newValue && (
+              <span className="text-foreground/60"> — {truncate(item.newValue)}</span>
+            )}
+          </span>
+          <span className="ml-auto text-xs whitespace-nowrap shrink-0">{relativeTime}</span>
+        </div>
+      );
+    }
+
+    const fieldLabel = FIELD_LABELS[item.field] ?? item.field;
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span className="inline-block h-2 w-2 rounded-full shrink-0 bg-border" />
+        <span className="flex-1 min-w-0">
+          <span className="font-medium text-foreground">{item.changedBy.name}</span>
+          {" updated "}
+          <span className="font-medium text-foreground">{fieldLabel}</span>
+          {item.oldValue && item.newValue && (
+            <> from <span className="text-foreground/70">{item.oldValue}</span> to <span className="text-foreground/70">{item.newValue}</span></>
+          )}
+          {!item.oldValue && item.newValue && (
+            <> set to <span className="text-foreground/70">{item.newValue}</span></>
+          )}
+          {item.oldValue && !item.newValue && (
+            <> cleared</>
+          )}
+        </span>
+        <span className="ml-auto text-xs whitespace-nowrap shrink-0">{relativeTime}</span>
+      </div>
+    );
+  }
+
   // comment
-  const preview =
-    item.body.length > 100 ? item.body.slice(0, 100) + "…" : item.body;
   return (
     <div className="flex gap-3">
       <div className="shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
@@ -67,7 +160,7 @@ export function ActivityFeedItem({ item }: ActivityFeedItemProps) {
           <span className="text-sm font-medium">{item.author.name}</span>
           <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">{relativeTime}</span>
         </div>
-        <p className="text-sm text-muted-foreground mt-0.5 wrap-break-word">{preview}</p>
+        <p className="text-sm text-muted-foreground mt-0.5 wrap-break-word whitespace-pre-wrap">{item.body}</p>
       </div>
     </div>
   );

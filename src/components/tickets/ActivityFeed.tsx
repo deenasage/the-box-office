@@ -3,12 +3,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ActivityFeedItem, type FeedItem } from "./ActivityFeedItem";
-import type { CommentData } from "./CommentItem";
 
 interface StatusHistoryEntry {
   id: string;
   fromStatus: string | null;
   toStatus: string;
+  changedAt: string;
+  changedBy: { id: string; name: string };
+}
+
+interface AuditLogEntry {
+  id: string;
+  field: string;
+  oldValue: string | null;
+  newValue: string | null;
   changedAt: string;
   changedBy: { id: string; name: string };
 }
@@ -24,18 +32,19 @@ export function ActivityFeed({ ticketId, refreshKey }: ActivityFeedProps) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchFeed = useCallback(async () => {
+    setIsLoading(true);
     try {
-      const [historyRes, commentsRes] = await Promise.all([
+      const [historyRes, auditRes] = await Promise.all([
         fetch(`/api/tickets/${ticketId}/status-history`),
-        fetch(`/api/tickets/${ticketId}/comments`),
+        fetch(`/api/tickets/${ticketId}/audit-log`),
       ]);
 
-      if (!historyRes.ok || !commentsRes.ok) {
-        throw new Error("Failed to load activity");
-      }
+      if (!historyRes.ok) throw new Error("Failed to load activity");
 
       const historyJson = (await historyRes.json()) as { data: StatusHistoryEntry[] };
-      const commentsJson = (await commentsRes.json()) as { data: CommentData[] };
+      const auditJson = auditRes.ok
+        ? ((await auditRes.json()) as { data: AuditLogEntry[] })
+        : { data: [] };
 
       const statusItems: FeedItem[] = historyJson.data.map((h) => ({
         kind: "status",
@@ -46,16 +55,20 @@ export function ActivityFeed({ ticketId, refreshKey }: ActivityFeedProps) {
         changedBy: h.changedBy,
       }));
 
-      const commentItems: FeedItem[] = commentsJson.data.map((c) => ({
-        kind: "comment",
-        id: c.id,
-        timestamp: c.createdAt,
-        body: c.body,
-        author: c.author,
+      // Every audit entry is its own immutable row — posted, edited, deleted
+      // are all separate entries, nothing overwrites anything.
+      const fieldItems: FeedItem[] = auditJson.data.map((a) => ({
+        kind: "field",
+        id: a.id,
+        timestamp: a.changedAt,
+        field: a.field,
+        oldValue: a.oldValue,
+        newValue: a.newValue,
+        changedBy: a.changedBy,
       }));
 
-      const merged = [...statusItems, ...commentItems].sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      const merged = [...statusItems, ...fieldItems].sort(
+        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
 
       setItems(merged);
@@ -71,15 +84,12 @@ export function ActivityFeed({ ticketId, refreshKey }: ActivityFeedProps) {
   }, [fetchFeed, refreshKey]);
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold">Activity</h3>
-
-      {isLoading && <p className="text-sm text-muted-foreground">Loading activity…</p>}
+    <div className="space-y-3">
+      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
       {!isLoading && items.length === 0 && (
         <p className="text-sm text-muted-foreground">No activity yet.</p>
       )}
-
       {items.length > 0 && (
         <div className="space-y-3">
           {items.map((item) => (

@@ -33,11 +33,14 @@ interface TicketActionsProps {
   };
   users: { id: string; name: string; team: Team | null }[];
   sprints: { id: string; name: string; isActive: boolean }[];
+  /** Fields that should be shown but not editable (e.g. for stakeholder roles) */
+  readOnlyFields?: string[];
 }
 
-export function TicketActions({ ticket, users, sprints }: TicketActionsProps) {
+export function TicketActions({ ticket, users, sprints, readOnlyFields = [] }: TicketActionsProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const ro = new Set(readOnlyFields);
   const [requiredSkillsetId, setRequiredSkillsetId] = useState<string | null>(
     ticket.requiredSkillsetId ?? null
   );
@@ -99,7 +102,7 @@ export function TicketActions({ ticket, users, sprints }: TicketActionsProps) {
         <Select
           value={ticket.size ?? "none"}
           onValueChange={(v) => update({ size: v === "none" ? null : v })}
-          disabled={saving}
+          disabled={saving || ro.has("size")}
         >
           <SelectTrigger className="h-8 text-sm">
             <SelectValue>{ticket.size ? SIZE_LABELS[ticket.size] : "Unsized"}</SelectValue>
@@ -118,7 +121,7 @@ export function TicketActions({ ticket, users, sprints }: TicketActionsProps) {
         <Select
           value={ticket.assigneeId ?? "none"}
           onValueChange={(v) => update({ assigneeId: v === "none" ? null : v })}
-          disabled={saving}
+          disabled={saving || ro.has("assigneeId")}
         >
           <SelectTrigger className="h-8 text-sm">
             <SelectValue>
@@ -149,7 +152,7 @@ export function TicketActions({ ticket, users, sprints }: TicketActionsProps) {
         <Select
           value={ticket.sprintId ?? "none"}
           onValueChange={(v) => update({ sprintId: v === "none" ? null : v })}
-          disabled={saving}
+          disabled={saving || ro.has("sprintId")}
         >
           <SelectTrigger className="h-8 text-sm">
             <SelectValue>

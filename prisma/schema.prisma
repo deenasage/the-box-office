@@ -162,6 +162,7 @@ model User {
   createdTickets           Ticket[]                    @relation("CreatedBy")
   capacities               TeamCapacity[]
   statusChanges            TicketStatusHistory[]
+  auditLogs                TicketAuditLog[]
   briefs                   Brief[]                     @relation("BriefCreatedBy")
   sprintSuggestions        SprintSuggestion[]          @relation("SuggestionCreatedBy")
   createdDependencies      TicketDependency[]          @relation("DependencyCreatedBy")
@@ -242,6 +243,7 @@ model Ticket {
   updatedAt            DateTime      @updatedAt
 
   statusHistory        TicketStatusHistory[]
+  auditLog             TicketAuditLog[]
   aiEstimates          AIEstimate[]
   dependenciesFrom     TicketDependency[]          @relation("DependencyFrom")
   dependenciesTo       TicketDependency[]          @relation("DependencyTo")
@@ -346,6 +348,26 @@ model TicketStatusHistory {
   changedAt    DateTime      @default(now())
   changedById  String
   changedBy    User          @relation(fields: [changedById], references: [id])
+
+  @@index([ticketId])
+  @@index([changedAt])
+  @@index([ticketId, changedAt])
+}
+
+/// Immutable log of every field change on a ticket.
+/// Written by the API on every PATCH that changes tracked fields.
+/// Never updated — only created. No updatedAt by design.
+/// Tracks: title, description, team, priority, size, assigneeId, sprintId.
+model TicketAuditLog {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  field       String   /// e.g. "description", "assigneeId", "team", "priority", "size", "sprint", "title"
+  oldValue    String?
+  newValue    String?
+  changedAt   DateTime @default(now())
+  changedById String
+  changedBy   User     @relation(fields: [changedById], references: [id])
 
   @@index([ticketId])
   @@index([changedAt])

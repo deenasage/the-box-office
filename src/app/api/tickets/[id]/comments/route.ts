@@ -128,6 +128,20 @@ export async function POST(
     return NextResponse.json({ error: "Failed to post comment" }, { status: 500 });
   }
 
+  // Audit log + touch updatedAt — awaited so entries are guaranteed to persist
+  try {
+    await db.ticketAuditLog.create({
+      data: {
+        ticketId: id,
+        field: "comment_added",
+        oldValue: null,
+        newValue: parsed.data.body,
+        changedById: session.user.id,
+      },
+    });
+    await db.ticket.update({ where: { id }, data: { updatedAt: new Date() } });
+  } catch { /* never fail the response */ }
+
   // Parse @mention notifications (fire-and-forget — never block the response)
   void (async () => {
     try {

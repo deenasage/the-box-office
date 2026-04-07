@@ -9,11 +9,11 @@ export async function GET() {
 
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, role: true },
   });
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  return NextResponse.json({ id: user.id, name: user.name, email: user.email });
+  return NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role });
 }
 
 export async function PATCH(req: NextRequest) {

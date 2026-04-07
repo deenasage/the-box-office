@@ -131,6 +131,12 @@ export default async function TicketDetailPage({
         }}
         users={users}
         sprints={sprints}
+        readOnlyFields={
+          session?.user?.role === "MEMBER_STAKEHOLDER" ||
+          session?.user?.role === "TEAM_LEAD_STAKEHOLDER"
+            ? ["size", "assigneeId", "sprintId"]
+            : []
+        }
       />
 
       <div>

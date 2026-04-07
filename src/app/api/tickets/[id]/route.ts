@@ -93,17 +93,23 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  // Fetch current ticket state before update — needed for status history, epic sync, and email triggers
-  const needsCurrent =
-    parsed.data.status !== undefined ||
-    parsed.data.epicId !== undefined ||
-    parsed.data.assigneeId !== undefined;
-  const current = needsCurrent
-    ? await db.ticket.findUnique({
-        where: { id },
-        select: { status: true, epicId: true, assigneeId: true, title: true },
-      })
-    : null;
+  // Fetch current ticket state before update — needed for status history, epic sync, email triggers, and audit logging
+  const current = await db.ticket.findUnique({
+    where: { id },
+    select: {
+      status: true,
+      epicId: true,
+      assigneeId: true,
+      title: true,
+      description: true,
+      team: true,
+      priority: true,
+      size: true,
+      sprintId: true,
+      assignee: { select: { name: true } },
+      sprint: { select: { name: true } },
+    },
+  });
 
   type TicketWithIncludes = Prisma.TicketGetPayload<{ include: typeof ticketInclude }>;
   let ticket: TicketWithIncludes;
@@ -144,6 +150,120 @@ export async function PATCH(
     }
     return NextResponse.json({ error: "Failed to update ticket" }, { status: 500 });
   }
+
+  // Audit log — fire-and-forget field-change tracking.
+  // Errors here must never fail the PATCH response.
+  void (async () => {
+    try {
+      if (!current) return; // ticket didn't exist — nothing to diff
+
+      const priorityLabel = (p: number) => {
+        if (p === 1) return "Low";
+        if (p === 2) return "Medium";
+        if (p === 3) return "High";
+        return "No priority";
+      };
+
+      const auditEntries: Prisma.TicketAuditLogCreateManyInput[] = [];
+
+      if (parsed.data.title !== undefined && parsed.data.title !== current.title) {
+        auditEntries.push({
+          ticketId: id,
+          field: "title",
+          oldValue: current.title,
+          newValue: parsed.data.title,
+          changedById: session.user.id,
+        });
+      }
+
+      if (
+        parsed.data.description !== undefined &&
+        parsed.data.description !== current.description
+      ) {
+        auditEntries.push({
+          ticketId: id,
+          field: "description",
+          oldValue: current.description ?? null,
+          newValue: parsed.data.description ?? null,
+          changedById: session.user.id,
+        });
+      }
+
+      if (parsed.data.team !== undefined && parsed.data.team !== current.team) {
+        auditEntries.push({
+          ticketId: id,
+          field: "team",
+          oldValue: current.team,
+          newValue: parsed.data.team,
+          changedById: session.user.id,
+        });
+      }
+
+      if (parsed.data.priority !== undefined && parsed.data.priority !== current.priority) {
+        auditEntries.push({
+          ticketId: id,
+          field: "priority",
+          oldValue: priorityLabel(current.priority),
+          newValue: priorityLabel(parsed.data.priority),
+          changedById: session.user.id,
+        });
+      }
+
+      if (parsed.data.size !== undefined && parsed.data.size !== current.size) {
+        auditEntries.push({
+          ticketId: id,
+          field: "size",
+          oldValue: current.size ?? null,
+          newValue: parsed.data.size ?? null,
+          changedById: session.user.id,
+        });
+      }
+
+      if (parsed.data.assigneeId !== undefined && parsed.data.assigneeId !== current.assigneeId) {
+        // New assignee name — look up if we have a new assigneeId
+        let newAssigneeName: string | null = null;
+        if (parsed.data.assigneeId) {
+          const newAssignee = await db.user.findUnique({
+            where: { id: parsed.data.assigneeId },
+            select: { name: true },
+          });
+          newAssigneeName = newAssignee?.name ?? parsed.data.assigneeId;
+        }
+        auditEntries.push({
+          ticketId: id,
+          field: "assigneeId",
+          oldValue: current.assignee?.name ?? null,
+          newValue: newAssigneeName,
+          changedById: session.user.id,
+        });
+      }
+
+      if (parsed.data.sprintId !== undefined && parsed.data.sprintId !== current.sprintId) {
+        // New sprint name — look up if we have a new sprintId
+        let newSprintName: string | null = null;
+        if (parsed.data.sprintId) {
+          const newSprint = await db.sprint.findUnique({
+            where: { id: parsed.data.sprintId },
+            select: { name: true },
+          });
+          newSprintName = newSprint?.name ?? parsed.data.sprintId;
+        }
+        auditEntries.push({
+          ticketId: id,
+          field: "sprintId",
+          oldValue: current.sprint?.name ?? null,
+          newValue: newSprintName,
+          changedById: session.user.id,
+        });
+      }
+
+      if (auditEntries.length > 0) {
+        await db.ticketAuditLog.createMany({ data: auditEntries });
+      }
+    } catch (e) {
+      console.error("[audit log] failed for ticket", id, e);
+    }
+  })();
 
   // Sync epic status if this ticket belongs to an epic.
   // These are fire-and-forget side effects — errors here must not fail the

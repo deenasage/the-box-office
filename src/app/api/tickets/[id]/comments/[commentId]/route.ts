@@ -47,6 +47,11 @@ export async function PATCH(
   }
 
   try {
+    const existing = await db.comment.findUnique({
+      where: { id: commentId },
+      select: { body: true },
+    });
+
     const updated = await db.comment.update({
       where: { id: commentId },
       data: { body: newBody },
@@ -58,6 +63,20 @@ export async function PATCH(
         author: { select: { id: true, name: true } },
       },
     });
+
+    // Audit log + updatedAt touch — awaited so entries are guaranteed to persist
+    try {
+      await db.ticketAuditLog.create({
+        data: {
+          ticketId: id,
+          field: "comment_edited",
+          oldValue: existing?.body ?? null,
+          newValue: newBody,
+          changedById: session.user.id,
+        },
+      });
+      await db.ticket.update({ where: { id }, data: { updatedAt: new Date() } });
+    } catch { /* never fail the response */ }
 
     return NextResponse.json({ data: updated });
   } catch (e) {
@@ -92,7 +111,26 @@ export async function DELETE(
   }
 
   try {
+    const existing = await db.comment.findUnique({
+      where: { id: commentId },
+      select: { body: true },
+    });
+
     await db.comment.delete({ where: { id: commentId } });
+
+    // Audit log + updatedAt touch — awaited so entries are guaranteed to persist
+    try {
+      await db.ticketAuditLog.create({
+        data: {
+          ticketId: id,
+          field: "comment_deleted",
+          oldValue: existing?.body ?? null,
+          newValue: null,
+          changedById: session.user.id,
+        },
+      });
+      await db.ticket.update({ where: { id }, data: { updatedAt: new Date() } });
+    } catch { /* never fail the response */ }
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
