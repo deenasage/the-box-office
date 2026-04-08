@@ -12,7 +12,15 @@ export const TEAM_LABELS: Record<Team, string> = {
 };
 
 /** Human-readable labels for ticket priority levels (index = priority value) */
-export const PRIORITY_LABELS: readonly string[] = ["—", "Low", "Medium", "High"];
+export const PRIORITY_LABELS: readonly string[] = ["—", "Low", "Med", "High", "Urgent"];
+
+/** Tailwind badge classes per ticket priority (0 renders nothing) */
+export const PRIORITY_BADGE_STYLES: Record<number, string> = {
+  1: "bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-500/20",
+  2: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 ring-1 ring-inset ring-yellow-500/20",
+  3: "bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-500/20",
+  4: "bg-red-500/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-500/20",
+};
 
 /** Human-readable labels for ticket statuses */
 export const STATUS_LABELS: Record<string, string> = {
@@ -46,23 +54,6 @@ export const STATUS_BADGE_STYLES: Record<string, string> = {
   ARCHIVED:    "bg-slate-500/10 text-slate-500 dark:text-slate-400 ring-1 ring-inset ring-slate-500/20",
 };
 
-/** Tailwind dot classes per ticket priority (string-keyed, used in AI proposal cards) */
-export const PRIORITY_DOT_COLORS: Record<string, string> = {
-  CRITICAL: "bg-red-500",
-  HIGH: "bg-orange-500",
-  MEDIUM: "bg-yellow-500",
-  LOW: "bg-blue-500",
-};
-
-/**
- * Tailwind dot classes per ticket priority numeric level (0 = none, 1 = Low, 2 = Medium, 3 = High).
- * Use this when priority is a number (Ticket.priority field).
- */
-export const PRIORITY_DOT_COLORS_NUMERIC: Record<number, string> = {
-  1: "bg-yellow-400",
-  2: "bg-orange-400",
-  3: "bg-red-500",
-};
 
 /** Tailwind badge/border classes per team (used in capacity UI) */
 export const TEAM_BADGE_COLORS: Record<Team, string> = {

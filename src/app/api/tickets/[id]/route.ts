@@ -3,13 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
-import { Team, TicketStatus, TicketSize, Hub, UserRole , Prisma } from "@prisma/client";
+import { Team, TicketStatus, TicketSize, Hub, TicketType, UserRole , Prisma } from "@prisma/client";
 import { syncEpicStatus } from "@/lib/epic-status";
-import {
-  sendEmail,
-  ticketAssignedEmail,
-  ticketStatusChangedEmail,
-} from "@/lib/email";
+import { sendEmail, ticketAssignedEmail, ticketStatusChangedEmail } from "@/lib/mailer";
 import { createNotifications } from "@/lib/notify-users";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -19,9 +15,10 @@ const updateSchema = z.object({
   description: z.string().nullable().optional(),
   status: z.nativeEnum(TicketStatus).optional(),
   size: z.nativeEnum(TicketSize).nullable().optional(),
-  priority: z.number().int().min(0).max(3).optional(),
+  priority: z.number().int().min(0).max(4).optional(),
   team: z.nativeEnum(Team).optional(),
   hub: z.nativeEnum(Hub).nullable().optional(),
+  type: z.nativeEnum(TicketType).nullable().optional(),
   tier: z.string().nullable().optional(),
   category: z.string().nullable().optional(),
   assigneeId: z.string().nullable().optional(),
@@ -159,8 +156,9 @@ export async function PATCH(
 
       const priorityLabel = (p: number) => {
         if (p === 1) return "Low";
-        if (p === 2) return "Medium";
+        if (p === 2) return "Med";
         if (p === 3) return "High";
+        if (p === 4) return "Urgent";
         return "No priority";
       };
 

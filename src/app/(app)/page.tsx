@@ -34,6 +34,9 @@ export default async function DashboardPage() {
     }
   }
 
+  // ── MEMBER_CRAFT lands on My Work, not Dashboard ─────────────────────────────
+  if (session.user.role === UserRole.MEMBER_CRAFT) redirect("/my-work");
+
   // ── Scope queries by team for craft roles ────────────────────────────────────
   // ADMIN (non-impersonating): global view — no team filter.
   // TEAM_LEAD_CRAFT / MEMBER_CRAFT: scoped to their team.
@@ -56,8 +59,6 @@ export default async function DashboardPage() {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const in14Days = new Date(today);
-  in14Days.setDate(in14Days.getDate() + 14);
 
   const notDone = { status: { notIn: [TicketStatus.DONE] as TicketStatus[] } };
 
@@ -119,10 +120,12 @@ export default async function DashboardPage() {
       },
     }),
 
-    // Upcoming due dates — scoped
+    // Deadlines — all non-DONE tickets with a dueDate, scoped.
+    // Fetched sorted ASC so overdue (past) comes first, upcoming follows.
+    // Client groups them into overdue vs upcoming sections.
     db.ticket.findMany({
-      where: { ...notDone, ...scopeClause, dueDate: { gte: today, lte: in14Days } },
-      take: 8,
+      where: { ...notDone, ...scopeClause, dueDate: { not: null } },
+      take: 20,
       orderBy: { dueDate: "asc" },
       select: {
         id: true, title: true, dueDate: true, status: true,

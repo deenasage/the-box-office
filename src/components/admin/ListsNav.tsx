@@ -12,6 +12,7 @@ const TABS = [
   { key: "categories", label: "Categories" },
   { key: "regions", label: "Regions" },
   { key: "statuses", label: "Statuses" },
+  { key: "priorities", label: "Priorities" },
 ] as const;
 
 interface ListsNavProps {

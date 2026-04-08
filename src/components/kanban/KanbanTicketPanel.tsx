@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { TicketStatus, Team, TicketSize, Hub } from "@prisma/client";
+import { TicketStatus, Team, TicketSize, Hub, TicketType } from "@prisma/client";
+import { TicketTypeBadge } from "@/components/tickets/TicketTypeBadge";
 import { TicketComments } from "@/components/tickets/TicketComments";
 import { TicketTimeline, type TimelineEntry } from "@/components/tickets/TicketTimeline";
 import { ActivityFeed } from "@/components/tickets/ActivityFeed";
-import { STATUS_LABELS } from "@/lib/constants";
+import { STATUS_LABELS, PRIORITY_LABELS } from "@/lib/constants";
 
 const STAKEHOLDER_ROLES = new Set(["MEMBER_STAKEHOLDER", "TEAM_LEAD_STAKEHOLDER"]);
 
@@ -23,7 +24,6 @@ const STAKEHOLDER_ROLES = new Set(["MEMBER_STAKEHOLDER", "TEAM_LEAD_STAKEHOLDER"
 const SIZE_LABELS: Record<TicketSize, string> = {
   XS: "XS (2h)", S: "S (4h)", M: "M (8h)", L: "L (20h)", XL: "XL (36h)", XXL: "XXL (72h)",
 };
-const PRIORITY_LABELS = ["No priority", "Low", "Medium", "High"];
 const TEAM_LABELS: Record<Team, string> = {
   CONTENT: "Content", DESIGN: "Design", SEO: "SEO",
   WEM: "WEM", PAID_MEDIA: "Paid Media", ANALYTICS: "Analytics",
@@ -35,6 +35,7 @@ const ALL_STATUSES  = Object.values(TicketStatus);
 const ALL_SIZES     = Object.values(TicketSize);
 const ALL_TEAMS     = Object.values(Team);
 const ALL_HUBS      = Object.values(Hub);
+const ALL_TYPES     = Object.values(TicketType);
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString(undefined, {
@@ -49,6 +50,7 @@ interface PanelTicket {
   title: string;
   description: string | null;
   status: TicketStatus;
+  type: TicketType | null;
   team: Team | null;
   priority: number;
   size: TicketSize | null;
@@ -63,6 +65,7 @@ interface PanelTicket {
   sprintId: string | null;
   epic: { id: string; name: string; color: string | null } | null;
   isCarryover: boolean;
+  dueDate: string | null;
 }
 
 interface Props {
@@ -393,6 +396,34 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
                     </Select>
                   </FieldRow>
 
+                  <FieldRow label="Type">
+                    <Select
+                      value={ticket.type ?? "_none"}
+                      onValueChange={(v) => void patch({ type: v === "_none" ? null : v })}
+                      disabled={saving}
+                    >
+                      <SelectTrigger className="h-7 text-xs border-dashed w-full">
+                        <span className="truncate flex items-center gap-1.5">
+                          {ticket.type ? (
+                            <TicketTypeBadge type={ticket.type} variant="full" />
+                          ) : (
+                            "No type"
+                          )}
+                        </span>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none" className="text-xs text-muted-foreground">No type</SelectItem>
+                        {ALL_TYPES.map((t) => (
+                          <SelectItem key={t} value={t} className="text-xs">
+                            <span className="flex items-center gap-1.5">
+                              <TicketTypeBadge type={t} variant="full" />
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FieldRow>
+
                   <FieldRow label="Team">
                     <Select
                       value={ticket.team ?? "_none"}
@@ -418,11 +449,12 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
                       disabled={saving}
                     >
                       <SelectTrigger className="h-7 text-xs border-dashed w-full">
-                        <span className="truncate">{PRIORITY_LABELS[ticket.priority] ?? "No priority"}</span>
+                        <span className="truncate">{ticket.priority === 0 ? "No priority" : (PRIORITY_LABELS[ticket.priority] ?? "No priority")}</span>
                       </SelectTrigger>
                       <SelectContent>
-                        {PRIORITY_LABELS.map((label, i) => (
-                          <SelectItem key={i} value={String(i)} className="text-xs">{label}</SelectItem>
+                        <SelectItem value="0" className="text-xs text-muted-foreground">No priority</SelectItem>
+                        {PRIORITY_LABELS.slice(1).map((label, i) => (
+                          <SelectItem key={i + 1} value={String(i + 1)} className="text-xs">{label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -530,6 +562,17 @@ export function KanbanTicketPanel({ ticketId, onClose, onStatusChange }: Props) 
                         ))}
                       </SelectContent>
                     </Select>
+                  </FieldRow>
+
+                  <FieldRow label="Due date">
+                    <input
+                      type="date"
+                      value={ticket.dueDate ? ticket.dueDate.slice(0, 10) : ""}
+                      onChange={(e) => void patch({ dueDate: e.target.value || null })}
+                      disabled={saving}
+                      className="h-7 text-xs border border-dashed rounded px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring w-full"
+                      aria-label="Due date"
+                    />
                   </FieldRow>
 
                   {ticket.epic && (

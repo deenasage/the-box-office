@@ -29,12 +29,13 @@ interface NavItem {
   label: string;
   stakeholderLabel?: string;
   hideForAdmin?: boolean;
+  hideForMember?: boolean;
   icon: ComponentType<{ className?: string }>;
   matchPrefixes?: string[];
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, hideForMember: true },
   { href: "/my-work", label: "My Work", icon: User, stakeholderLabel: "My Requests", hideForAdmin: true },
   { href: "/tickets", label: "Tickets", icon: Kanban },
   {
@@ -112,7 +113,10 @@ export function SidebarNav({
 
       {/* Main nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.filter(({ hideForAdmin }) => !(user.role === UserRole.ADMIN && hideForAdmin)).map(({ href, label, stakeholderLabel, icon: Icon }) => (
+        {NAV_ITEMS.filter(({ hideForAdmin, hideForMember }) =>
+          !(user.role === UserRole.ADMIN && hideForAdmin) &&
+          !(user.role === UserRole.MEMBER_CRAFT && hideForMember)
+        ).map(({ href, label, stakeholderLabel, icon: Icon }) => (
           <Link
             key={href}
             href={resolveHref(href)}

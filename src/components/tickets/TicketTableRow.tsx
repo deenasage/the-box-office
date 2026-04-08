@@ -8,7 +8,7 @@ import { SizeBadge } from "./SizeBadge";
 import { TeamBadge } from "./TeamBadge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDate } from "@/lib/utils";
-import { STATUS_LABELS, PRIORITY_DOT_COLORS_NUMERIC as PRIORITY_DOT } from "@/lib/constants";
+import { STATUS_LABELS, PRIORITY_LABELS, PRIORITY_BADGE_STYLES } from "@/lib/constants";
 import { TicketStatus } from "@prisma/client";
 
 const STATUS_DOT: Record<TicketStatus, string> = {
@@ -21,7 +21,6 @@ const STATUS_DOT: Record<TicketStatus, string> = {
   DONE:        "bg-[#008146]",
 };
 
-const PRIORITY_LABELS = ["—", "Low", "Med", "High"];
 
 /**
  * Returns Tailwind classes for the row's left-border accent and optional background tint.
@@ -35,7 +34,7 @@ function getRowAccent(ticket: TicketSummary): string {
   if (ticket.status === "BLOCKED") {
     return "border-l-4 border-l-red-500 bg-red-500/[0.03]";
   }
-  if (ticket.priority >= 3 && ticket.status !== "DONE") {
+  if (ticket.priority >= 4 && ticket.status !== "DONE") {
     return "border-l-4 border-l-amber-500";
   }
   if (ticket.status === "DONE") {
@@ -91,8 +90,7 @@ export function TicketTableRow({ ticket, isSelected, onToggle }: TicketTableRowP
 
       <td className="px-4 py-3 whitespace-nowrap">
         {ticket.priority > 0 ? (
-          <span className="inline-flex items-center gap-1.5">
-            <span className={`h-2 w-2 rounded-full ${PRIORITY_DOT[ticket.priority]}`} />
+          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${PRIORITY_BADGE_STYLES[ticket.priority]}`}>
             {PRIORITY_LABELS[ticket.priority]}
           </span>
         ) : (

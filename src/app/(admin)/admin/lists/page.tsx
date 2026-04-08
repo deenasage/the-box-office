@@ -6,9 +6,16 @@ import { ListValueSection } from "@/components/admin/ListValueSection";
 import { ListsNav } from "@/components/admin/ListsNav";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { STATUS_LABELS, STATUS_BADGE_STYLES } from "@/lib/constants";
+import { STATUS_LABELS, STATUS_BADGE_STYLES, PRIORITY_LABELS, PRIORITY_BADGE_STYLES } from "@/lib/constants";
 
 export const metadata = { title: "Lists | Admin" };
+
+const DEFAULT_PRIORITIES = [
+  { value: "Urgent",  sortOrder: 0 },
+  { value: "High",    sortOrder: 1 },
+  { value: "Medium",  sortOrder: 2 },
+  { value: "Low",     sortOrder: 3 },
+];
 
 const DEFAULT_TEAMS = [
   { value: "Content", sortOrder: 0 },
@@ -43,6 +50,22 @@ export default async function AdminListsPage({
       });
     }
   } catch { /* non-fatal — section will still render via client fetch */ }
+
+  // Seed default priorities into list_values if none exist yet
+  try {
+    const priorityCount = await db.listValue.count({ where: { listKey: "priority" } });
+    if (priorityCount === 0) {
+      await db.$transaction(async (tx) => {
+        for (const p of DEFAULT_PRIORITIES) {
+          await tx.listValue.upsert({
+            where: { listKey_value: { listKey: "priority", value: p.value } },
+            create: { listKey: "priority", value: p.value, sortOrder: p.sortOrder },
+            update: {},
+          });
+        }
+      });
+    }
+  } catch { /* non-fatal */ }
 
   // Fetch only what's needed for the active tab
   let labels: Awaited<ReturnType<typeof db.label.findMany>> | null = null;
@@ -170,6 +193,26 @@ export default async function AdminListsPage({
                 className={cn("text-xs font-medium", STATUS_BADGE_STYLES[status])}
               >
                 {STATUS_LABELS[status]}
+              </Badge>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {activeTab === "priorities" && (
+        <section aria-labelledby="section-priorities">
+          <h2 id="section-priorities" className="text-base font-semibold text-foreground mb-3">Priorities</h2>
+          <p className="text-sm text-muted-foreground mb-3">
+            Priority levels are system-defined. Contact your developer to add or rename levels.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {([4, 3, 2, 1] as const).map((level) => (
+              <Badge
+                key={level}
+                variant="outline"
+                className={cn("text-xs font-medium", PRIORITY_BADGE_STYLES[level])}
+              >
+                {PRIORITY_LABELS[level]}
               </Badge>
             ))}
           </div>

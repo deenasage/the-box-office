@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth, isPrivileged as checkPrivileged } from "@/lib/api-helpers";
 import { detectTeam } from "@/lib/routing";
 import { evaluateConditions } from "@/lib/form-logic";
-import { Team, TicketSize, TicketStatus, Hub, Prisma } from "@prisma/client";
+import { Team, TicketSize, TicketStatus, Hub, TicketType, Prisma } from "@prisma/client";
 import type { ConditionalRule, FormFieldConfig } from "@/types";
 
 const createSchema = z.object({
@@ -15,12 +15,14 @@ const createSchema = z.object({
   templateId: z.string().optional(),
   team: z.nativeEnum(Team).optional(),
   hub: z.nativeEnum(Hub).optional(),
-  priority: z.number().int().min(0).max(3).optional(),
+  type: z.nativeEnum(TicketType).optional(),
+  priority: z.number().int().min(0).max(4).optional(),
   // Optional fields for quick-create flow
   assigneeId: z.string().optional(),
   size: z.nativeEnum(TicketSize).optional(),
   sprintId: z.string().optional(),
   status: z.nativeEnum(TicketStatus).optional(),
+  dueDate: z.string().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -68,6 +70,16 @@ export async function GET(req: NextRequest) {
     hub = hubParsed.data;
   }
 
+  let ticketType: TicketType | undefined;
+  const typeParam = searchParams.get("type") || undefined;
+  if (typeParam !== undefined) {
+    const typeParsed = z.nativeEnum(TicketType).safeParse(typeParam);
+    if (!typeParsed.success) {
+      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+    }
+    ticketType = typeParsed.data;
+  }
+
   const tier = searchParams.get("tier") || undefined;
   const category = searchParams.get("category") || undefined;
   const sprintId = searchParams.get("sprintId");
@@ -83,6 +95,7 @@ export async function GET(req: NextRequest) {
     ...(team ? { team } : {}),
     ...(status ? { status } : {}),
     ...(hub ? { hub } : {}),
+    ...(ticketType ? { type: ticketType } : {}),
     ...(tier ? { tier } : {}),
     ...(category ? { category } : {}),
     ...(sprintId === "null"
@@ -124,6 +137,20 @@ export async function GET(req: NextRequest) {
           select: { id: true },
           take: 1,
         },
+        dependenciesFrom: {
+          where: { type: "BLOCKS" },
+          select: {
+            id: true,
+            toTicket: { select: { team: true } },
+          },
+        },
+        dependenciesTo: {
+          where: { type: "BLOCKS" },
+          select: {
+            id: true,
+            fromTicket: { select: { team: true, status: true } },
+          },
+        },
       },
       orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
       take: limit,
@@ -132,10 +159,12 @@ export async function GET(req: NextRequest) {
     db.ticket.count({ where }),
   ]);
 
-  const data = tickets.map(({ statusHistory, aiEstimates, ...ticket }) => ({
+  const data = tickets.map(({ statusHistory, aiEstimates, dependenciesFrom, dependenciesTo, ...ticket }) => ({
     ...ticket,
     cycleStartedAt: statusHistory[0]?.changedAt ?? null,
     hasPendingEstimate: aiEstimates.length > 0,
+    dependenciesFrom,
+    dependenciesTo,
   }));
 
   return NextResponse.json({ data, total, page, limit });
@@ -156,7 +185,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { title, description, templateId, team: manualTeam, hub, priority, assigneeId, size, sprintId, status } = parsed.data;
+  const { title, description, templateId, team: manualTeam, hub, type: ticketTypeCreate, priority, assigneeId, size, sprintId, status, dueDate } = parsed.data;
   let { formData } = parsed.data;
 
   // Validate assigneeId and sprintId before any further work
@@ -231,10 +260,12 @@ export async function POST(req: NextRequest) {
         priority: priority ?? 0,
         creatorId: session.user.id,
         ...(hub !== undefined ? { hub } : {}),
+        ...(ticketTypeCreate !== undefined ? { type: ticketTypeCreate } : {}),
         ...(status !== undefined ? { status } : {}),
         ...(assigneeId !== undefined ? { assigneeId } : {}),
         ...(size !== undefined ? { size } : {}),
         ...(sprintId !== undefined ? { sprintId } : {}),
+        ...(dueDate !== undefined ? { dueDate: new Date(dueDate) } : {}),
       },
       include: {
         assignee: { select: { id: true, name: true, email: true, team: true, role: true } },

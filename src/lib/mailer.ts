@@ -56,6 +56,58 @@ export async function sendEmail(payload: MailPayload): Promise<void> {
   }
 }
 
+export function ticketAssignedEmail(opts: {
+  to: string;
+  assigneeName: string;
+  ticketTitle: string;
+  ticketId: string;
+  appUrl: string;
+}): MailPayload {
+  const link = `${opts.appUrl}/tickets/${opts.ticketId}`;
+  return {
+    to: opts.to,
+    subject: `You've been assigned: ${opts.ticketTitle}`,
+    html: `<p>Hi ${opts.assigneeName},</p><p>You have been assigned a new ticket: <strong>${opts.ticketTitle}</strong></p><p><a href="${link}">View ticket →</a></p>`,
+    text: `Hi ${opts.assigneeName},\n\nYou have been assigned: ${opts.ticketTitle}\n\nView ticket: ${link}`,
+  };
+}
+
+export function ticketCommentEmail(opts: {
+  to: string;
+  userName: string;
+  commenterName: string;
+  ticketTitle: string;
+  ticketId: string;
+  commentBody: string;
+  appUrl: string;
+}): MailPayload {
+  const link = `${opts.appUrl}/tickets/${opts.ticketId}`;
+  return {
+    to: opts.to,
+    subject: `New comment on: ${opts.ticketTitle}`,
+    html: `<p>Hi ${opts.userName},</p><p><strong>${opts.commenterName}</strong> commented on <strong>${opts.ticketTitle}</strong>:</p><blockquote>${opts.commentBody}</blockquote><p><a href="${link}">View ticket →</a></p>`,
+    text: `Hi ${opts.userName},\n\n${opts.commenterName} commented on ${opts.ticketTitle}:\n\n${opts.commentBody}\n\nView ticket: ${link}`,
+  };
+}
+
+export function ticketStatusChangedEmail(opts: {
+  to: string;
+  userName: string;
+  ticketTitle: string;
+  ticketId: string;
+  oldStatus: string;
+  newStatus: string;
+  appUrl: string;
+}): MailPayload {
+  const link = `${opts.appUrl}/tickets/${opts.ticketId}`;
+  return {
+    to: opts.to,
+    subject: `Ticket status updated: ${opts.ticketTitle}`,
+    html: `<p>Hi ${opts.userName},</p><p>The ticket <strong>${opts.ticketTitle}</strong> status changed from <strong>${opts.oldStatus}</strong> to <strong>${opts.newStatus}</strong>.</p><p><a href="${link}">View ticket →</a></p>`,
+    text: `Hi ${opts.userName},\n\n${opts.ticketTitle} status changed: ${opts.oldStatus} → ${opts.newStatus}\n\nView ticket: ${link}`,
+  };
+}
+
 export function buildNotificationEmail(opts: {
   to: string;
   message: string;

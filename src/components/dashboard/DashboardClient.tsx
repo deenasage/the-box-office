@@ -16,6 +16,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { ActivityFeedDashboard } from "@/components/dashboard/ActivityFeedDashboard";
 import { SprintBatteryWidget } from "@/components/dashboard/SprintBatteryWidget";
 import { TeamStatsSection } from "@/components/dashboard/TeamStatsSection";
+import { UpcomingDueDatesCard } from "@/components/dashboard/UpcomingDueDatesCard";
 import { formatDate } from "@/lib/utils";
 import type { TicketStatus, TicketSize, Team, UserRole } from "@prisma/client";
 
@@ -115,7 +116,7 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ data, userName, teamStats, sprintStatusCounts, effectiveTeam, effectiveRole, effectiveUserId }: DashboardClientProps) {
-  const { stats, activeSprint, recentActivity } = data;
+  const { stats, activeSprint, recentActivity, upcomingDueDates } = data;
 
   const teamLabel = effectiveTeam ? (TEAM_LABELS[effectiveTeam] ?? effectiveTeam) : null;
   const isTeamLeadCraft = effectiveRole === "TEAM_LEAD_CRAFT" && !!teamLabel;
@@ -280,19 +281,29 @@ export function DashboardClient({ data, userName, teamStats, sprintStatusCounts,
         </section>
       )}
 
-      {/* Recent Activity */}
-      <section aria-label="Recent activity">
-        <Card>
-          <CardHeader className="border-b pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-              <CircleDot className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <ActivityFeedDashboard items={recentActivity} />
-          </CardContent>
-        </Card>
+      {/* Activity feed + Deadlines — side by side on large screens */}
+      <section aria-label="Activity and deadlines">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* Recent activity takes up 2/3 */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="border-b pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                  <CircleDot className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <ActivityFeedDashboard items={recentActivity} />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Deadlines takes up 1/3 */}
+          <div className="lg:col-span-1">
+            <UpcomingDueDatesCard tickets={upcomingDueDates} />
+          </div>
+        </div>
       </section>
     </div>
   );

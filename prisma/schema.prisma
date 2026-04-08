@@ -116,6 +116,22 @@ enum CarryoverStatus {
   DISMISSED
 }
 
+enum TicketType {
+  BUG
+  FEATURE
+  TASK
+  STORY
+  IMPROVEMENT
+}
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  SELECT
+  DATE
+  CHECKBOX
+}
+
 enum Hub {
   NA_HUB
   EU_HUB
@@ -218,6 +234,7 @@ model Ticket {
   team          Team
   status        TicketStatus  @default(BACKLOG)
   size          TicketSize?   /// null = unsized
+  type          TicketType?   /// null = untyped (legacy tickets)
   dueDate       DateTime?     /// optional deadline — does not affect sprint placement
   priority      Int           @default(0) /// 0=none 1=low 2=medium 3=high
   isPriority    Boolean       @default(false) /// Flagged as a priority for the next sprint
@@ -253,6 +270,7 @@ model Ticket {
   attachments          TicketAttachment[]
   ganttItem            GanttItem?
   carryoverSuggestions SprintCarryoverSuggestion[]
+  customFieldValues    TicketCustomFieldValue[]
 
   @@index([status])
   @@index([team])
@@ -434,8 +452,41 @@ model KanbanColumnConfig {
   team     Team
   status   TicketStatus
   wipLimit Int?         /// null = no limit enforced
+  hidden   Boolean      @default(false) /// when true, column is not rendered on the board
 
   @@unique([team, status])
+}
+
+/// Admin-configurable custom fields that can be attached to tickets.
+/// teamScope = null means the field appears for all teams.
+/// options is a JSON string[] used only when fieldType = SELECT.
+model CustomField {
+  id        String          @id @default(cuid())
+  name      String
+  fieldType CustomFieldType
+  teamScope Team?           /// null = global (all teams)
+  required  Boolean         @default(false)
+  order     Int             @default(0)
+  options   String?         /// JSON array of strings, used when fieldType = SELECT
+  createdAt DateTime        @default(now())
+
+  values TicketCustomFieldValue[]
+}
+
+/// Stores the value of a CustomField for a specific ticket.
+/// value is always persisted as a string; the UI parses it according to fieldType.
+/// Composite unique on [ticketId, fieldId] prevents duplicate values per field per ticket.
+model TicketCustomFieldValue {
+  id       String      @id @default(cuid())
+  ticketId String
+  fieldId  String
+  value    String      /// always stored as string; UI parses by fieldType
+
+  ticket Ticket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  field  CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, fieldId])
+  @@index([fieldId])
 }
 
 /// SPEC: ai-brief.md

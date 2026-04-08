@@ -1229,7 +1229,7 @@ async function main() {
 
   // ── BACKLOG TICKETS (no sprint) ───────────────────────────────────────────
 
-  await prisma.ticket.create({
+  const tSeoBacklog = await prisma.ticket.create({
     data: {
       title: "Audit meta tags across all landing pages",
       description: "Review title, description, and canonical tags. Flag pages missing OG tags.",
@@ -2051,6 +2051,56 @@ async function main() {
   await prisma.ticketStatusHistory.createMany({ data: historyEntries });
 
   console.log(`Created ${historyEntries.length} status history entries.`);
+
+  // ── CROSS-TEAM HANDOFF DEPENDENCIES ─────────────────────────────────────────
+  // Four BLOCKS dependencies across different teams — one for each sequencing state:
+  //   correct:     blocker in sprint2 (past) → dependent in sprint5 (active)
+  //   same-sprint: both in sprint5
+  //   inverted:    blocker in sprint5 → dependent in sprint4 (already ended — bad)
+  //   unscheduled: blocker in sprint5 → dependent has no sprint
+
+  await prisma.ticketDependency.createMany({
+    data: [
+      // ✅ correct — t13 (DESIGN, sprint2, DONE) blocks t26 (CONTENT, sprint5, IN_REVIEW)
+      //    Design finished the component; Content needs it to publish the Q2 calendar.
+      {
+        fromTicketId: t13.id,
+        toTicketId:   t26.id,
+        type:         "BLOCKS",
+        detectedBy:   "MANUAL",
+        createdBy:    admin.id,
+      },
+      // ⚠️  same-sprint — t28 (DESIGN, sprint5, IN_PROGRESS) blocks t30 (CONTENT, sprint5, IN_PROGRESS)
+      //    Design is storyboarding the UKIA campaign; Content is writing the blog post that needs the brief.
+      {
+        fromTicketId: t28.id,
+        toTicketId:   t30.id,
+        type:         "BLOCKS",
+        detectedBy:   "MANUAL",
+        createdBy:    admin.id,
+      },
+      // ❌ inverted — t27 (DESIGN, sprint5) blocks t24 (CONTENT, sprint4 — already done)
+      //    Sequencing error: the dependent was shipped before the blocker was designed.
+      {
+        fromTicketId: t27.id,
+        toTicketId:   t24.id,
+        type:         "BLOCKS",
+        detectedBy:   "MANUAL",
+        createdBy:    admin.id,
+      },
+      // ⬜ unscheduled — t29 (DESIGN, sprint5, IN_PROGRESS) blocks tSeoBacklog (SEO, no sprint)
+      //    Interaction design for the kanban must finish before the SEO meta-tag audit can start (page structure TBD).
+      {
+        fromTicketId: t29.id,
+        toTicketId:   tSeoBacklog.id,
+        type:         "BLOCKS",
+        detectedBy:   "MANUAL",
+        createdBy:    admin.id,
+      },
+    ],
+  });
+
+  console.log("Created 4 cross-team handoff dependencies (correct, same-sprint, inverted, unscheduled).");
   console.log("Seed complete.");
 }
 

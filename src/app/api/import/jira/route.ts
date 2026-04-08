@@ -24,15 +24,17 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 function mapPriority(raw: string | undefined): number {
   if (!raw) return 0;
   const v = raw.trim().toLowerCase();
-  if (v === "highest" || v === "critical") return 3;
-  if (v === "high") return 2;
-  if (v === "medium") return 1;
-  return 0; // Low, Lowest, or anything else
+  if (v === "highest" || v === "critical") return 4;
+  if (v === "high") return 3;
+  if (v === "medium") return 2;
+  if (v === "low") return 1;
+  return 0; // Lowest, or anything else
 }
 
 function priorityLabel(p: number): string {
+  if (p === 4) return "Urgent";
   if (p === 3) return "High";
-  if (p === 2) return "Medium";
+  if (p === 2) return "Med";
   if (p === 1) return "Low";
   return "None";
 }

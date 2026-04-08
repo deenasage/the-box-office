@@ -7,6 +7,7 @@ import { UserRole } from "@prisma/client";
 import {
   Settings, Users, GitBranch, Layers,
   History, Upload, Tag, MapPin, Wrench,
+  SlidersHorizontal, LayoutGrid,
 } from "lucide-react";
 
 interface SubNavItem {
@@ -24,8 +25,10 @@ const ITEMS: SubNavItem[] = [
   { href: "/admin/labels",        label: "Labels",        icon: Tag,       adminOnly: true },
   { href: "/admin/skillsets",     label: "Skillsets",     icon: Wrench,    adminOnly: true },
   { href: "/admin/milestones",    label: "Milestones",    icon: MapPin,    adminOnly: true },
-  { href: "/admin/deletion-log",  label: "Deletion Log",  icon: History,   adminOnly: true },
-  { href: "/admin/import",        label: "Import",        icon: Upload,    adminOnly: true },
+  { href: "/admin/custom-fields",  label: "Custom Fields",  icon: SlidersHorizontal, adminOnly: true },
+  { href: "/admin/board-settings", label: "Board Settings", icon: LayoutGrid,        adminOnly: true },
+  { href: "/admin/deletion-log",   label: "Deletion Log",   icon: History,           adminOnly: true },
+  { href: "/admin/import",         label: "Import",         icon: Upload,            adminOnly: true },
 ];
 
 export function AdminSubNav({ role }: { role: UserRole }) {
@@ -36,7 +39,7 @@ export function AdminSubNav({ role }: { role: UserRole }) {
 
   return (
     <div className="border-b border-border bg-muted/30">
-      <div className="px-6 flex items-center gap-1 overflow-x-auto">
+      <div style={{ display: "flex", width: "100%", justifyContent: "space-evenly" }}>
         {visible.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (

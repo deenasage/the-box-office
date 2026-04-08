@@ -32,6 +32,7 @@ import Link from "next/link";
 import { Info, Ticket } from "lucide-react";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { RefinementTab } from "@/components/sprints/RefinementTab";
+import { HandoffPanel } from "@/components/sprints/HandoffPanel";
 
 export default async function SprintDetailPage({
   params,
@@ -337,6 +338,11 @@ export default async function SprintDetailPage({
               currentUserRole={session?.user.role}
               currentUserTeam={session?.user.team}
             />
+          </div>
+
+          {/* Cross-Team Handoffs */}
+          <div>
+            <HandoffPanel sprintId={sprint.id} />
           </div>
 
           {/* Burndown Chart */}

@@ -46,21 +46,24 @@ interface Props {
   confirming: boolean;
 }
 
+import { PRIORITY_BADGE_STYLES } from "@/lib/constants";
+
 // ── Color maps ─────────────────────────────────────────────────────────────────
 // Modern translucent pill pattern: bg-*/10 text-*-700 dark:text-*-300 ring-1 ring-inset ring-*/20
+
+// Maps AI-generated string priority keys to badge styles (derived from shared numeric constants)
+const PRIORITY_STRING_BADGE: Record<string, string> = {
+  LOW:    PRIORITY_BADGE_STYLES[1],
+  MEDIUM: PRIORITY_BADGE_STYLES[2],
+  HIGH:   PRIORITY_BADGE_STYLES[3],
+  URGENT: PRIORITY_BADGE_STYLES[4],
+};
 
 const TEAM_COLORS: Record<string, string> = {
   CONTENT: "bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-500/20",
   DESIGN:  "bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-500/20",
   SEO:     "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-500/20",
   WEM:     "bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-500/20",
-};
-
-const PRIORITY_COLORS: Record<string, string> = {
-  LOW:    "bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-500/20",
-  MEDIUM: "bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-500/20",
-  HIGH:   "bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-500/20",
-  URGENT: "bg-red-500/10 text-red-700 dark:text-red-300 ring-1 ring-inset ring-red-500/20",
 };
 
 const PRIORITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
@@ -115,7 +118,7 @@ function TicketRow({ ticket, onChange, onRemove, canRemove }: TicketRowProps) {
             value={ticket.priority}
             onChange={(e) => set("priority", e.target.value)}
             className={`h-5 rounded border-0 px-1.5 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer ${
-              PRIORITY_COLORS[ticket.priority] ?? "bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-500/20"
+              PRIORITY_STRING_BADGE[ticket.priority] ?? "bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-500/20"
             }`}
             aria-label="Priority"
           >

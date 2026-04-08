@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
-import { sendEmail, ticketCommentEmail } from "@/lib/email";
+import { sendEmail, ticketCommentEmail } from "@/lib/mailer";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 

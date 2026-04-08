@@ -16,7 +16,7 @@ import { SizeBadge } from "@/components/tickets/SizeBadge";
 import { cn } from "@/lib/utils";
 import { SIZE_HOURS } from "@/lib/utils";
 import { ProposalRowV2, AvailableAssigneeV2 } from "./auto-assign-types";
-import { PRIORITY_DOT_COLORS } from "@/lib/constants";
+import { PRIORITY_LABELS, PRIORITY_BADGE_STYLES } from "@/lib/constants";
 
 interface ProposalCardProps {
   row: ProposalRowV2;
@@ -107,14 +107,6 @@ export function ProposalCard({
   const currentHours = row.size ? SIZE_HOURS[row.size] : 0;
   const totalAfter = row.committedHoursAfter;
 
-  const priorityKey =
-    row.priority === 3
-      ? "HIGH"
-      : row.priority === 2
-      ? "MEDIUM"
-      : row.priority === 1
-      ? "LOW"
-      : null;
 
   if (row.removed) {
     return (
@@ -157,15 +149,16 @@ export function ProposalCard({
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            {priorityKey && PRIORITY_DOT_COLORS[priorityKey] && (
+            {row.priority > 0 && (
               <span
                 className={cn(
-                  "inline-block w-2 h-2 rounded-full shrink-0",
-                  PRIORITY_DOT_COLORS[priorityKey]
+                  "text-[10px] px-1.5 py-0.5 rounded font-medium",
+                  PRIORITY_BADGE_STYLES[row.priority]
                 )}
-                aria-label={`Priority: ${priorityKey}`}
-                title={`Priority: ${priorityKey}`}
-              />
+                aria-label={`Priority: ${PRIORITY_LABELS[row.priority]}`}
+              >
+                {PRIORITY_LABELS[row.priority]}
+              </span>
             )}
             <a
               href={`/tickets/${row.ticketId}`}

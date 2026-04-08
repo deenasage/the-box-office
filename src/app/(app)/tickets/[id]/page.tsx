@@ -18,9 +18,7 @@ import { SkillsetBadge } from "@/components/skillsets/SkillsetBadge";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
-import { STATUS_LABELS, STATUS_BADGE_STYLES as STATUS_STYLES, PRIORITY_LABELS } from "@/lib/constants";
-
-const PRIORITY_COLORS = ["text-muted-foreground", "text-yellow-600", "text-orange-600", "text-red-600"];
+import { STATUS_LABELS, STATUS_BADGE_STYLES as STATUS_STYLES, PRIORITY_LABELS, PRIORITY_BADGE_STYLES } from "@/lib/constants";
 
 export default async function TicketDetailPage({
   params,
@@ -108,9 +106,12 @@ export default async function TicketDetailPage({
             />
           )}
           {ticket.priority > 0 && (
-            <span className={`text-xs font-medium ${PRIORITY_COLORS[ticket.priority]}`}>
-              ▲ {PRIORITY_LABELS[ticket.priority]}
-            </span>
+            <Badge
+              variant="outline"
+              className={`text-xs font-medium ${PRIORITY_BADGE_STYLES[ticket.priority]}`}
+            >
+              {PRIORITY_LABELS[ticket.priority]}
+            </Badge>
           )}
         </div>
         <TicketDetailEditor

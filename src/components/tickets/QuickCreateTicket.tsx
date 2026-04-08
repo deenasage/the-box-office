@@ -13,9 +13,10 @@ import {
 } from "@/components/ui/select";
 import { FieldRenderer } from "@/components/forms/FieldRenderer";
 import { evaluateConditions } from "@/lib/form-logic";
-import { Team, TicketSize, TicketStatus } from "@prisma/client";
+import { Team, TicketSize, TicketStatus, TicketType } from "@prisma/client";
 import { TEAM_LABELS, STATUS_LABELS } from "@/lib/constants";
 import { LayoutTemplate } from "lucide-react";
+import { TicketTypeBadge, TICKET_TYPE_CONFIG } from "@/components/tickets/TicketTypeBadge";
 import type { TicketTemplate } from "./TicketTemplateManager";
 import type { FormFieldConfig, ConditionalRule } from "@/types";
 
@@ -81,6 +82,8 @@ export function QuickCreateTicket({
   const [assigneeId, setAssigneeId] = useState("");
   const [size, setSize] = useState(template?.size ?? "");
   const [sprintId, setSprintId] = useState("");
+  const [ticketType, setTicketType] = useState<TicketType | "">("");
+  const [dueDate, setDueDate] = useState("");
   const [formValues, setFormValues] = useState<Record<string, unknown>>({});
   const [formFields, setFormFields] = useState<FormFieldConfig[]>([]);
   const [templateId, setTemplateId] = useState<string | null>(null);
@@ -158,9 +161,11 @@ export function QuickCreateTicket({
         priority: 0,
         formData: JSON.stringify(filteredData),
       };
+      if (ticketType) body.type = ticketType;
       if (assigneeId) body.assigneeId = assigneeId;
       if (size) body.size = size;
       if (sprintId) body.sprintId = sprintId;
+      if (dueDate) body.dueDate = dueDate;
       if (templateId) body.templateId = templateId;
 
       const res = await fetch("/api/tickets", {
@@ -268,6 +273,30 @@ export function QuickCreateTicket({
         </div>
       </div>
 
+      {/* Type */}
+      <div className="space-y-1">
+        <Label htmlFor="qc-type" className="text-xs font-medium">Type</Label>
+        <Select value={ticketType || "_none"} onValueChange={(v) => setTicketType(v === "_none" ? "" : v as TicketType)} disabled={isSubmitting}>
+          <SelectTrigger id="qc-type" className="h-8 text-xs">
+            <span className="flex-1 text-left truncate flex items-center gap-1.5">
+              {ticketType ? (
+                <TicketTypeBadge type={ticketType} variant="full" />
+              ) : (
+                "No type"
+              )}
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_none" className="text-xs text-muted-foreground">No type</SelectItem>
+            {(Object.values(TicketType) as TicketType[]).map((t) => (
+              <SelectItem key={t} value={t} className="text-xs">
+                <TicketTypeBadge type={t} variant="full" />
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Dynamic intake form fields */}
       {formFields.length > 0 && (
         <div className="space-y-4 pt-1 border-t border-border">
@@ -343,6 +372,20 @@ export function QuickCreateTicket({
           </Select>
         </div>
       )}
+
+      {/* Due date */}
+      <div className="space-y-1">
+        <Label htmlFor="qc-due" className="text-xs font-medium">Due date</Label>
+        <input
+          id="qc-due"
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          disabled={isSubmitting}
+          className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          aria-label="Due date"
+        />
+      </div>
 
       {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
 

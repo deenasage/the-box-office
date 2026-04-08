@@ -60,13 +60,13 @@ function storyPointsToSize(points: number): TicketSize {
   return TicketSize.XXL;
 }
 
-/** Maps priority string to Ticket.priority integer (0=none,1=low,2=medium,3=high). */
+/** Maps priority string to Ticket.priority integer (0=none,1=low,2=medium,3=high,4=urgent). */
 function priorityToInt(priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT"): number {
   switch (priority) {
     case "LOW":    return 1;
     case "MEDIUM": return 2;
     case "HIGH":   return 3;
-    case "URGENT": return 3; // No URGENT level in schema — map to HIGH (3)
+    case "URGENT": return 4;
   }
 }
 

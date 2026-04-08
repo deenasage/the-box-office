@@ -1,22 +1,21 @@
 // SPEC: brief-to-epic-workflow.md
+// SPEC: handoffs
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { XCircle, Loader2 } from "lucide-react";
+import { XCircle } from "lucide-react";
 import { notify } from "@/lib/toast";
+import { TicketStatus, Team } from "@prisma/client";
 import {
   SprintCarryoverModal,
   type CarryoverSuggestion,
 } from "./SprintCarryoverModal";
+import { SprintCloseDialog } from "./SprintCloseDialog";
+import { type HandoffChecklistItem } from "./HandoffChecklist";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Props {
   sprintId: string;
@@ -35,6 +34,26 @@ interface AvailableSprint {
   name: string;
 }
 
+interface HandoffTicketRef {
+  id: string;
+  title: string;
+  status: TicketStatus;
+  team: Team;
+  sprint: { id: string; name: string; startDate: string } | null;
+}
+
+interface HandoffsApiResponse {
+  data: {
+    id: string;
+    blocker: HandoffTicketRef;
+    dependent: HandoffTicketRef;
+    sequencing: string;
+  }[];
+  nextSprint: { id: string; name: string } | null;
+}
+
+// ── SprintCloseButton ─────────────────────────────────────────────────────────
+
 export function SprintCloseButton({
   sprintId,
   sprintName,
@@ -49,17 +68,26 @@ export function SprintCloseButton({
   const [availableSprints, setAvailableSprints] = useState<AvailableSprint[]>([]);
   const [destination, setDestination] = useState<string>("backlog");
   const [loadingNextSprints, setLoadingNextSprints] = useState(false);
+  const [handoffItems, setHandoffItems] = useState<HandoffChecklistItem[]>([]);
+  const [handoffNextSprintId, setHandoffNextSprintId] = useState<string | null>(null);
+  const [handoffNextSprintName, setHandoffNextSprintName] = useState<string | null>(null);
 
   if (!isActive || !isAdminOrLead) return null;
 
   async function openConfirm() {
     setConfirmOpen(true);
     setDestination("backlog");
+    setHandoffItems([]);
+    setHandoffNextSprintId(null);
+    setHandoffNextSprintName(null);
     setLoadingNextSprints(true);
     try {
-      const res = await fetch("/api/sprints");
-      if (res.ok) {
-        const json = (await res.json()) as {
+      const [sprintsRes, handoffsRes] = await Promise.all([
+        fetch("/api/sprints"),
+        fetch(`/api/sprints/${sprintId}/handoffs`),
+      ]);
+      if (sprintsRes.ok) {
+        const json = (await sprintsRes.json()) as {
           data: { id: string; name: string; isActive: boolean; endDate: string }[];
         };
         const now = new Date();
@@ -67,11 +95,28 @@ export function SprintCloseButton({
           (s) => !s.isActive && s.id !== sprintId && new Date(s.endDate) > now
         );
         setAvailableSprints(future);
-        // Pre-select the first available future sprint
         if (future.length > 0) setDestination(future[0].id);
       }
+      if (handoffsRes.ok) {
+        const handoffsJson = (await handoffsRes.json()) as HandoffsApiResponse;
+        const NEARLY_DONE = new Set<TicketStatus>([TicketStatus.DONE, TicketStatus.IN_REVIEW]);
+        const unscheduled = handoffsJson.data.filter(
+          (h) => h.dependent.sprint === null && NEARLY_DONE.has(h.blocker.status)
+        );
+        setHandoffItems(
+          unscheduled.map((h) => ({
+            handoffId: h.id,
+            blocker: h.blocker,
+            dependent: h.dependent,
+          }))
+        );
+        if (handoffsJson.nextSprint) {
+          setHandoffNextSprintId(handoffsJson.nextSprint.id);
+          setHandoffNextSprintName(handoffsJson.nextSprint.name);
+        }
+      }
     } catch {
-      // Non-fatal
+      // Non-fatal — checklist simply won't appear
     } finally {
       setLoadingNextSprints(false);
     }
@@ -98,25 +143,20 @@ export function SprintCloseButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetSprintId }),
       });
-
       if (!res.ok) {
         const json = (await res.json()) as { error?: string };
         notify.error(json.error ?? "Failed to close sprint");
         return;
       }
-
       const json = (await res.json()) as { data: CloseResult };
       setConfirmOpen(false);
       router.refresh();
-
       if (json.data.carriedOver > 0) {
         if (targetSprintId) {
-          // Tickets moved directly to the chosen sprint — simple toast
           notify.success(
             `Sprint closed. ${json.data.carriedOver} ticket${json.data.carriedOver !== 1 ? "s" : ""} moved to next sprint.`
           );
         } else {
-          // Backlog — open per-ticket carryover modal for individual routing
           await fetchCarryoverData();
           setCarryoverOpen(true);
         }
@@ -143,90 +183,21 @@ export function SprintCloseButton({
         Close Sprint
       </Button>
 
-      {/* Confirmation dialog */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="max-w-md" aria-describedby="close-sprint-desc">
-          <DialogHeader>
-            <DialogTitle>Close sprint &quot;{sprintName}&quot;?</DialogTitle>
-          </DialogHeader>
+      <SprintCloseDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        sprintName={sprintName}
+        loadingNextSprints={loadingNextSprints}
+        closing={closing}
+        destination={destination}
+        onDestinationChange={setDestination}
+        availableSprints={availableSprints}
+        handoffItems={handoffItems}
+        handoffNextSprintId={handoffNextSprintId}
+        handoffNextSprintName={handoffNextSprintName}
+        onClose={handleClose}
+      />
 
-          <div className="space-y-4">
-            <p id="close-sprint-desc" className="text-sm text-muted-foreground">
-              Non-done tickets will be moved out of this sprint. This action cannot be undone.
-            </p>
-
-            {loadingNextSprints ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Loading sprints…
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Move incomplete tickets to:</p>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="close-destination"
-                      value="backlog"
-                      checked={destination === "backlog"}
-                      onChange={() => setDestination("backlog")}
-                      className="accent-primary"
-                    />
-                    <span className="text-sm">Backlog</span>
-                  </label>
-                  {availableSprints.map((s) => (
-                    <label key={s.id} className="flex items-center gap-2.5 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="close-destination"
-                        value={s.id}
-                        checked={destination === s.id}
-                        onChange={() => setDestination(s.id)}
-                        className="accent-primary"
-                      />
-                      <span className="text-sm">{s.name}</span>
-                    </label>
-                  ))}
-                </div>
-                {availableSprints.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    No future sprints found — tickets will go to the backlog.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setConfirmOpen(false)}
-              disabled={closing}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="default"
-              className="bg-amber-600 hover:bg-amber-700 text-white"
-              onClick={handleClose}
-              disabled={closing || loadingNextSprints}
-              aria-label="Confirm close sprint"
-            >
-              {closing ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" aria-hidden />
-                  Closing…
-                </>
-              ) : (
-                "Close Sprint"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Carryover modal — shown after backlog close with pending tickets */}
       <SprintCarryoverModal
         sprintId={sprintId}
         open={carryoverOpen}

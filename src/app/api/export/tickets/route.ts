@@ -33,8 +33,9 @@ function buildCsvRow(fields: (string | null | undefined)[]): string {
 // ── Priority label ─────────────────────────────────────────────────────────────
 
 function priorityLabel(p: number): string {
+  if (p === 4) return "Urgent";
   if (p === 3) return "High";
-  if (p === 2) return "Medium";
+  if (p === 2) return "Med";
   if (p === 1) return "Low";
   return "None";
 }

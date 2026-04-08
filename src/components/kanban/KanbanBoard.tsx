@@ -5,8 +5,9 @@ import { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { TicketStatus, Team } from "@prisma/client";
+import { TicketStatus, Team, TicketType } from "@prisma/client";
 import { KanbanTicket, GroupBy, COLUMNS, PRIORITY_GROUP_LABELS, Hub, HUB_LABELS } from "./types";
+import { TICKET_TYPE_CONFIG } from "@/components/tickets/TicketTypeBadge";
 import { KanbanColumn, SwimlaneRow } from "./KanbanColumn";
 import { KanbanTicketPanel } from "./KanbanTicketPanel";
 import { notify } from "@/lib/toast";
@@ -51,12 +52,12 @@ const TEAM_LABELS: Record<Team, string> = {
   ANALYTICS:  "Analytics",
 };
 
-interface Filters { team: Team | ""; sprintId: string; assigneeId: string; hub: Hub | ""; tier: string; category: string }
+interface Filters { team: Team | ""; sprintId: string; assigneeId: string; hub: Hub | ""; tier: string; category: string; type: TicketType | "" }
 
 const FILTERS_STORAGE_KEY = "ticket-intake:kanban-filters";
 const GROUPBY_STORAGE_KEY = "ticket-intake:kanban-groupby";
 
-const EMPTY_FILTERS: Filters = { team: "", sprintId: "", assigneeId: "", hub: "", tier: "", category: "" };
+const EMPTY_FILTERS: Filters = { team: "", sprintId: "", assigneeId: "", hub: "", tier: "", category: "", type: "" };
 
 function loadFilters(): Filters {
   if (typeof window === "undefined") return { ...EMPTY_FILTERS };
@@ -117,11 +118,31 @@ function KanbanBoardInner() {
     if (f.hub) params.set("hub", f.hub);
     if (f.tier) params.set("tier", f.tier);
     if (f.category) params.set("category", f.category);
+    if (f.type) params.set("type", f.type);
     try {
       const res = await fetch(`/api/tickets?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to load");
-      const json = (await res.json()) as { data: KanbanTicket[] };
-      setTickets(json.data);
+      const json = (await res.json()) as {
+        data: (Omit<KanbanTicket, "crossTeamBlocking" | "crossTeamBlockedBy"> & {
+          dependenciesFrom?: { id: string; toTicket: { team: Team } }[];
+          dependenciesTo?: { id: string; fromTicket: { team: Team; status: string } }[];
+        })[];
+      };
+      // Map dependency fields → badge data for the kanban card
+      const mapped: KanbanTicket[] = json.data.map(({ dependenciesFrom, dependenciesTo, ...t }) => ({
+        ...t,
+        crossTeamBlocking: dependenciesFrom
+          ? dependenciesFrom
+              .map((d) => ({ team: d.toTicket.team }))
+              .filter((b) => b.team !== t.team)
+          : [],
+        crossTeamBlockedBy: dependenciesTo
+          ? dependenciesTo
+              .map((d) => ({ team: d.fromTicket.team, status: d.fromTicket.status }))
+              .filter((b) => b.team !== t.team && b.status !== "DONE")
+          : [],
+      }));
+      setTickets(mapped);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load tickets");
     } finally {
@@ -137,11 +158,12 @@ function KanbanBoardInner() {
     const urlHub = (searchParams.get("hub") ?? "") as Hub | "";
     const urlTier = searchParams.get("tier") ?? "";
     const urlCategory = searchParams.get("category") ?? "";
+    const urlType = (searchParams.get("type") ?? "") as TicketType | "";
     // noSprint=1 (from dashboard links) means: don't auto-apply the active sprint
     noAutoSprintRef.current = searchParams.get("noSprint") === "1";
-    const hasUrlFilters = urlTeam || urlSprintId || urlAssigneeId || urlHub || urlTier || urlCategory;
+    const hasUrlFilters = urlTeam || urlSprintId || urlAssigneeId || urlHub || urlTier || urlCategory || urlType;
     if (hasUrlFilters || noAutoSprintRef.current) {
-      setFilters({ team: urlTeam, sprintId: urlSprintId, assigneeId: urlAssigneeId, hub: urlHub, tier: urlTier, category: urlCategory });
+      setFilters({ team: urlTeam, sprintId: urlSprintId, assigneeId: urlAssigneeId, hub: urlHub, tier: urlTier, category: urlCategory, type: urlType });
     } else {
       setFilters(loadFilters());
     }
@@ -219,6 +241,7 @@ function KanbanBoardInner() {
     if (next.sprintId) params.set("sprintId", next.sprintId);
     if (next.assigneeId) params.set("assigneeId", next.assigneeId);
     if (next.hub) params.set("hub", next.hub);
+    if (next.type) params.set("type", next.type);
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     void fetchTickets(next);
@@ -595,6 +618,22 @@ function KanbanBoardInner() {
               </SelectContent>
             </Select>
           )}
+          <Select
+            value={filters.type || "_all"}
+            onValueChange={(v) => applyFilter({ type: (!v || v === "_all" ? "" : v) as TicketType | "" })}
+          >
+            <SelectTrigger className="h-8 w-36 text-sm" aria-label="Filter by type">
+              <span data-slot="select-value" className="flex flex-1 text-left truncate">
+                {filters.type ? (TICKET_TYPE_CONFIG[filters.type]?.label ?? filters.type) : "All Types"}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">All Types</SelectItem>
+              {(Object.values(TicketType) as TicketType[]).map((t) => (
+                <SelectItem key={t} value={t}>{TICKET_TYPE_CONFIG[t].label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <button
             onClick={() => setShowCarryoverOnly((v) => !v)}
             aria-pressed={showCarryoverOnly}

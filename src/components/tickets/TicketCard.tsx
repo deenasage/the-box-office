@@ -12,13 +12,7 @@ import { SkillsetBadge } from "@/components/skillsets/SkillsetBadge";
 import { getInitials } from "@/lib/utils";
 import { Team, TicketSize, TicketStatus } from "@prisma/client";
 import { Calendar } from "lucide-react";
-import { PRIORITY_LABELS } from "@/lib/constants";
-
-const PRIORITY_DOT: Record<number, string> = {
-  1: "bg-yellow-400",
-  2: "bg-orange-400",
-  3: "bg-red-500",
-};
+import { PRIORITY_LABELS, PRIORITY_BADGE_STYLES } from "@/lib/constants";
 
 const TEAM_BORDER: Record<Team, string> = {
   CONTENT: "border-l-sky-400",
@@ -77,13 +71,11 @@ export function TicketCard({
             {title}
           </p>
           {priority > 0 && (
-            <span className="flex items-center gap-1 shrink-0 mt-0.5">
-              <span
-                className={`inline-block h-2 w-2 rounded-full ${PRIORITY_DOT[priority]}`}
-                title={`Priority: ${PRIORITY_LABELS[priority]}`}
-                aria-label={`Priority: ${PRIORITY_LABELS[priority]}`}
-                role="img"
-              />
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 mt-0.5 ${PRIORITY_BADGE_STYLES[priority]}`}
+              aria-label={`Priority: ${PRIORITY_LABELS[priority]}`}
+            >
+              {PRIORITY_LABELS[priority]}
             </span>
           )}
         </div>

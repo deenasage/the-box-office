@@ -1,6 +1,9 @@
 // SPEC: tickets.md
 // SPEC: design-improvements.md
-import { TicketStatus, Team, TicketSize, Hub } from "@prisma/client";
+// SPEC: handoffs
+import { TicketStatus, Team, TicketSize, Hub, TicketType } from "@prisma/client";
+
+export { TicketType };
 
 export { Hub };
 
@@ -8,6 +11,7 @@ export interface KanbanTicket {
   id: string;
   title: string;
   status: TicketStatus;
+  type: TicketType | null;
   team: Team | null;
   hub: Hub | null;
   tier: string | null;
@@ -21,6 +25,8 @@ export interface KanbanTicket {
   hasPendingEstimate: boolean;
   assignee: { id: string; name: string } | null;
   epic: { id: string; name: string; color: string | null } | null;
+  crossTeamBlocking?: { team: Team }[];
+  crossTeamBlockedBy?: { team: Team; status: string }[];
 }
 
 export const HUB_LABELS: Record<Hub, string> = {
@@ -42,6 +48,7 @@ export const PRIORITY_GROUP_LABELS: Record<number, string> = {
   1: "Low",
   2: "Medium",
   3: "High",
+  4: "Urgent",
 };
 
 export const COLUMNS: {
@@ -64,15 +71,14 @@ export const COLUMNS: {
 
 // Modern translucent pill: bg-*/10 text-*-700 dark:text-*-300 ring-1 ring-inset ring-*/20
 export const TEAM_COLORS: Record<Team, string> = {
-  CONTENT:    "bg-sky-500/10 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-500/20",
-  DESIGN:     "bg-violet-500/10 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-500/20",
-  SEO:        "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-500/20",
-  WEM:        "bg-orange-500/10 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-500/20",
-  PAID_MEDIA: "bg-purple-500/10 text-purple-700 dark:text-purple-300 ring-1 ring-inset ring-purple-500/20",
-  ANALYTICS:  "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-500/20",
+  CONTENT:    "bg-sky-500/20 text-sky-700 dark:text-sky-300 ring-1 ring-inset ring-sky-500/30",
+  DESIGN:     "bg-violet-500/20 text-violet-700 dark:text-violet-300 ring-1 ring-inset ring-violet-500/30",
+  SEO:        "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-500/30",
+  WEM:        "bg-orange-500/20 text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-500/30",
+  PAID_MEDIA: "bg-purple-500/20 text-purple-700 dark:text-purple-300 ring-1 ring-inset ring-purple-500/30",
+  ANALYTICS:  "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 ring-1 ring-inset ring-cyan-500/30",
 };
 
-export const PRIORITY_COLORS = ["bg-slate-400", "bg-blue-400", "bg-yellow-400", "bg-red-400"];
 export const SIZE_LABELS: Record<TicketSize, string> = { XS: "XS", S: "S", M: "M", L: "L", XL: "XL", XXL: "XXL" };
 export const AGING_THRESHOLD_DAYS = 7;
 

@@ -5,13 +5,13 @@ import { Team, TicketStatus } from "@prisma/client";
 
 // Default WIP limits that match the hardcoded COLUMNS values in types.ts.
 // These are applied to all teams as the initial global baseline.
-const DEFAULTS: { status: TicketStatus; wipLimit: number | null }[] = [
-  { status: TicketStatus.BACKLOG,     wipLimit: null },
-  { status: TicketStatus.TODO,        wipLimit: null },
-  { status: TicketStatus.IN_PROGRESS, wipLimit: 5 },
-  { status: TicketStatus.IN_REVIEW,   wipLimit: 3 },
-  { status: TicketStatus.BLOCKED,     wipLimit: null },
-  { status: TicketStatus.DONE,        wipLimit: null },
+const DEFAULTS: { status: TicketStatus; wipLimit: number | null; hidden: boolean }[] = [
+  { status: TicketStatus.BACKLOG,     wipLimit: null, hidden: false },
+  { status: TicketStatus.TODO,        wipLimit: null, hidden: false },
+  { status: TicketStatus.IN_PROGRESS, wipLimit: 5,    hidden: false },
+  { status: TicketStatus.IN_REVIEW,   wipLimit: 3,    hidden: false },
+  { status: TicketStatus.BLOCKED,     wipLimit: null, hidden: false },
+  { status: TicketStatus.DONE,        wipLimit: null, hidden: false },
 ];
 
 const ALL_TEAMS = Object.values(Team);
@@ -37,9 +37,15 @@ export async function GET() {
 
   // Aggregate to per-status global limits: take the minimum non-null wipLimit
   // across all teams. If all teams have null for a status, return null.
+  // A status is hidden only if ALL teams have it hidden (conservative default: show unless all hide).
   const limitByStatus: Record<string, number | null> = {};
+  const hiddenCountByStatus: Record<string, number> = {};
+  const teamCountByStatus: Record<string, number> = {};
+
   for (const row of rows) {
     const key = row.status as string;
+
+    // wipLimit aggregation
     if (!(key in limitByStatus)) {
       limitByStatus[key] = row.wipLimit;
     } else {
@@ -52,12 +58,24 @@ export async function GET() {
         limitByStatus[key] = Math.min(current, row.wipLimit);
       }
     }
+
+    // hidden aggregation: count hidden rows per status
+    hiddenCountByStatus[key] = (hiddenCountByStatus[key] ?? 0) + (row.hidden ? 1 : 0);
+    teamCountByStatus[key] = (teamCountByStatus[key] ?? 0) + 1;
   }
 
-  const result = DEFAULTS.map((d) => ({
-    status: d.status as string,
-    wipLimit: d.status in limitByStatus ? limitByStatus[d.status] : d.wipLimit,
-  }));
+  const result = DEFAULTS.map((d) => {
+    const key = d.status as string;
+    const allHidden =
+      key in teamCountByStatus &&
+      teamCountByStatus[key] > 0 &&
+      hiddenCountByStatus[key] === teamCountByStatus[key];
+    return {
+      status: key,
+      wipLimit: key in limitByStatus ? limitByStatus[key] : d.wipLimit,
+      hidden: allHidden,
+    };
+  });
 
   return NextResponse.json(result);
 }

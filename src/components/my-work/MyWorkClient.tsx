@@ -9,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SizeBadge } from "@/components/tickets/SizeBadge";
 import { TicketStatusBadge } from "@/components/dashboard/TicketStatusBadge";
 import { DueDatePill } from "@/components/dashboard/DueDatePill";
-import { STATUS_LABELS, PRIORITY_DOT_COLORS_NUMERIC as PRIORITY_DOT } from "@/lib/constants";
-import { CheckCircle2, LayoutGrid, List, Inbox, CalendarClock, ChevronUp, ChevronDown, CalendarDays } from "lucide-react";
+import { STATUS_LABELS, PRIORITY_LABELS, PRIORITY_BADGE_STYLES } from "@/lib/constants";
+import { TEAM_COLORS } from "@/components/kanban/types";
+import { CheckCircle2, LayoutGrid, List, Inbox, CalendarClock, ChevronUp, ChevronDown, CalendarDays, Clock } from "lucide-react";
 import { cn, SIZE_HOURS, businessDaysBetween } from "@/lib/utils";
 import { KanbanTicketPanel } from "@/components/kanban/KanbanTicketPanel";
 import { notify } from "@/lib/toast";
@@ -149,44 +150,67 @@ function KanbanCard({ ticket, onSelect }: { ticket: WorkTicket; onSelect: (id: s
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      suppressHydrationWarning
       onClick={() => { if (!isDragging) onSelect(ticket.id); }}
       className={cn(
-        "bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors min-h-20 cursor-grab active:cursor-grabbing select-none",
+        "bg-card border rounded-lg px-3 pt-2.5 pb-2.5 cursor-grab active:cursor-grabbing select-none",
+        "hover:-translate-y-px hover:shadow-md hover:border-primary/40",
+        "transition-[colors,transform,box-shadow] duration-150",
+        ticket.status === "BLOCKED"
+          ? "border-red-400/60 dark:border-red-500/50 border-l-[3px] border-l-red-500"
+          : "border-border",
         isDragging && "opacity-0"
       )}
     >
+      {/* Epic */}
       {ticket.epic && (
-        <p className="text-[10px] font-medium mb-1.5 truncate text-muted-foreground">
+        <p className="text-[10px] text-muted-foreground truncate mb-1 leading-none">
           {ticket.epic.name}
         </p>
       )}
-      <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+
+      {/* Title */}
+      <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 break-words mb-2.5">
         {ticket.title}
       </p>
-      {showAge && (
-        <p className="text-[10px] text-muted-foreground mt-0.5">
-          {age}d {AGE_LABELS[ticket.status]}
-        </p>
-      )}
-      <div className="flex items-center justify-between mt-2 gap-1">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {ticket.priority > 0 && (
-            <span
-              className={cn("h-2 w-2 rounded-full shrink-0", PRIORITY_DOT[ticket.priority] ?? "bg-slate-400")}
-              aria-label={`Priority ${ticket.priority}`}
-            />
-          )}
-          {ticket.team && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
-              {ticket.team}
-            </span>
-          )}
-        </div>
-        <SizeBadge size={ticket.size} />
+
+      {/* Tags row */}
+      <div className="flex flex-wrap gap-1 mb-3">
+        {ticket.team && (
+          <span className={cn("inline-flex items-center h-5 px-1.5 rounded text-[10px] font-semibold tracking-wide leading-none", TEAM_COLORS[ticket.team])}>
+            {ticket.team}
+          </span>
+        )}
+        {ticket.priority > 0 && (
+          <span
+            className={cn("inline-flex items-center h-5 px-1.5 rounded text-[10px] font-medium leading-none", PRIORITY_BADGE_STYLES[ticket.priority])}
+            aria-label={`Priority: ${PRIORITY_LABELS[ticket.priority] ?? `Level ${ticket.priority}`}`}
+          >
+            {PRIORITY_LABELS[ticket.priority]}
+          </span>
+        )}
+        {ticket.size && (
+          <span className="inline-flex items-center h-5 px-1.5 rounded bg-muted text-muted-foreground text-[10px] font-mono leading-none">
+            {ticket.size}
+          </span>
+        )}
       </div>
-      {ticket.sprint && (
-        <p className="text-[10px] text-muted-foreground mt-1.5 truncate">{ticket.sprint.name}</p>
-      )}
+
+      {/* Divider */}
+      <div className="border-t border-border/60 mb-2" />
+
+      {/* Footer */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] text-muted-foreground truncate">
+          {ticket.sprint?.name ?? <span className="italic">No sprint</span>}
+        </span>
+        {showAge && age !== null && (
+          <div className="flex items-center gap-0.5 text-muted-foreground/70 shrink-0">
+            <Clock className="h-3 w-3" aria-hidden="true" />
+            <span className="text-[10px] leading-none tabular-nums">{age}d</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -286,7 +310,7 @@ function KanbanView({
             <p className="text-sm font-medium leading-snug line-clamp-2">{draggingTicket.title}</p>
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               {draggingTicket.team && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+                <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-semibold tracking-wide leading-none", TEAM_COLORS[draggingTicket.team])}>
                   {draggingTicket.team}
                 </span>
               )}
@@ -311,9 +335,11 @@ function TicketRow({ ticket, onSelect }: { ticket: WorkTicket; onSelect: (id: st
     >
       {ticket.priority > 0 && (
         <span
-          className={`h-2 w-2 rounded-full shrink-0 ${PRIORITY_DOT[ticket.priority] ?? "bg-muted-foreground"}`}
-          aria-label={`Priority ${ticket.priority}`}
-        />
+          className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${PRIORITY_BADGE_STYLES[ticket.priority]}`}
+          aria-label={`Priority: ${PRIORITY_LABELS[ticket.priority] ?? `Level ${ticket.priority}`}`}
+        >
+          {PRIORITY_LABELS[ticket.priority]}
+        </span>
       )}
       <span className="flex-1 text-sm font-medium line-clamp-1 group-hover:text-primary transition-colors">
         {ticket.title}
