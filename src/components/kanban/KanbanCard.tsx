@@ -7,7 +7,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { useRef, useState, useEffect, useCallback } from "react";
 import {
   KanbanTicket, TEAM_COLORS, PRIORITY_COLORS, SIZE_LABELS,
-  AGING_THRESHOLD_DAYS, COLUMNS, HUB_SHORT, getInitials, daysSince,
+  COLUMNS, HUB_SHORT, getInitials, daysSince,
 } from "./types";
 import {
   Tooltip, TooltipTrigger, TooltipContent, TooltipProvider,
@@ -114,8 +114,6 @@ export function KanbanCard({
   onCardClick: (id: string) => void;
   onStatusChange?: (id: string, status: string) => void;
 }) {
-  const agingAge = daysSince(ticket.updatedAt);
-  const isAging = agingAge > AGING_THRESHOLD_DAYS;
   const isBlocked = ticket.status === "BLOCKED";
   // BACKLOG age is measured from ticket creation; other active statuses use cycleStartedAt
   const ageDate = ticket.status === "BACKLOG"
@@ -153,8 +151,7 @@ export function KanbanCard({
         }}
         onContextMenu={handleContextMenu}
         className={cn(
-          "bg-card border border-border rounded-lg p-3 cursor-grab active:cursor-grabbing select-none hover:border-primary/50 transition-colors min-w-0 w-full overflow-hidden min-h-20",
-          isAging && "border-l-2 border-l-amber-500",
+          "bg-card border border-border rounded-lg p-3 cursor-grab active:cursor-grabbing select-none hover:border-primary/50 hover:-translate-y-0.5 hover:shadow-sm transition-[colors,transform,box-shadow] duration-150 min-w-0 w-full overflow-hidden min-h-20",
           isDragging && "opacity-0"
         )}
         aria-label={ticket.title}
@@ -209,11 +206,6 @@ export function KanbanCard({
             {ticket.hub && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-300 ring-1 ring-inset ring-blue-500/20 font-medium">
                 {HUB_SHORT[ticket.hub]}
-              </span>
-            )}
-            {isAging && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-1 ring-inset ring-amber-500/20 font-mono">
-                {agingAge}d
               </span>
             )}
           </div>

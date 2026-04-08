@@ -103,13 +103,13 @@ export function SidebarNav({
             key={href}
             href={href}
             className={cn(
-              "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors hover:no-underline",
+              "group/nav flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors duration-150 hover:no-underline",
               href === activeNavHref
                 ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
                 : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             )}
           >
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className="h-4 w-4 shrink-0 transition-transform duration-150 group-hover/nav:scale-110" />
             {label}
           </Link>
         ))}
@@ -123,13 +123,13 @@ export function SidebarNav({
           <Link
             href="/admin/users"
             className={cn(
-              "flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors hover:no-underline",
+              "group/nav flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors duration-150 hover:no-underline",
               isAdminArea
                 ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
                 : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             )}
           >
-            <Settings className="h-4 w-4 shrink-0" />
+            <Settings className="h-4 w-4 shrink-0 transition-transform duration-150 group-hover/nav:scale-110" />
             Admin
           </Link>
         )}

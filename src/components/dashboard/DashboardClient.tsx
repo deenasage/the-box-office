@@ -17,7 +17,12 @@ import { ActivityFeedDashboard } from "@/components/dashboard/ActivityFeedDashbo
 import { SprintBatteryWidget } from "@/components/dashboard/SprintBatteryWidget";
 import { TeamStatsSection } from "@/components/dashboard/TeamStatsSection";
 import { formatDate } from "@/lib/utils";
-import type { TicketStatus, TicketSize, Team } from "@prisma/client";
+import type { TicketStatus, TicketSize, Team, UserRole } from "@prisma/client";
+
+const TEAM_LABELS: Record<string, string> = {
+  CONTENT: "Content", DESIGN: "Design", SEO: "SEO",
+  WEM: "WEM", PAID_MEDIA: "Paid Media", ANALYTICS: "Analytics",
+};
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -104,10 +109,22 @@ interface DashboardClientProps {
   userName: string;
   teamStats: TeamStat[];
   sprintStatusCounts: SprintStatusCount[];
+  effectiveTeam?: Team | null;
+  effectiveRole?: UserRole | null;
 }
 
-export function DashboardClient({ data, userName, teamStats, sprintStatusCounts }: DashboardClientProps) {
+export function DashboardClient({ data, userName, teamStats, sprintStatusCounts, effectiveTeam, effectiveRole }: DashboardClientProps) {
   const { stats, activeSprint, recentActivity } = data;
+
+  const teamLabel = effectiveTeam ? (TEAM_LABELS[effectiveTeam] ?? effectiveTeam) : null;
+  const isCraftScoped = (effectiveRole === "TEAM_LEAD_CRAFT" || effectiveRole === "MEMBER_CRAFT") && !!teamLabel;
+  const isStakeholder = effectiveRole === "MEMBER_STAKEHOLDER" || effectiveRole === "TEAM_LEAD_STAKEHOLDER";
+  const isAdmin = !effectiveRole || effectiveRole === "ADMIN";
+
+  // When team-scoped, ticket links carry the team filter so the list auto-filters
+  const teamTicketsHref = isCraftScoped && effectiveTeam
+    ? `/tickets?team=${effectiveTeam}`
+    : "/tickets";
 
   const isEmptyState =
     !activeSprint &&
@@ -169,32 +186,32 @@ export function DashboardClient({ data, userName, teamStats, sprintStatusCounts 
           <StatCard
             label="Open Tickets"
             value={stats.openTickets}
-            sub="across all teams"
+            sub={isCraftScoped ? `in ${teamLabel}` : isStakeholder ? "you submitted" : "across all teams"}
             icon={<ListTodo className="h-3.5 w-3.5" aria-hidden="true" />}
             accentClass="border-t-primary"
-            href="/tickets"
+            href={teamTicketsHref}
           />
           <StatCard
             label="In Progress"
             value={stats.inProgressTickets}
-            sub="actively being worked"
+            sub={isCraftScoped ? `${teamLabel} team` : isStakeholder ? "your requests" : "actively being worked"}
             icon={<CircleDot className="h-3.5 w-3.5" aria-hidden="true" />}
             accentClass="border-t-violet-400"
-            href="/tickets"
+            href={`${teamTicketsHref}${isCraftScoped ? "&status=IN_PROGRESS" : "?status=IN_PROGRESS"}`}
           />
           <StatCard
             label="Overdue"
             value={stats.overdueTickets}
-            sub="past due date"
+            sub={isCraftScoped ? `in ${teamLabel}` : "past due date"}
             icon={<AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />}
             accentClass="border-t-red-400"
             alertIfPositive
-            href="/tickets"
+            href={teamTicketsHref}
           />
           <StatCard
-            label="My Open Tickets"
+            label={isCraftScoped && effectiveRole === "TEAM_LEAD_CRAFT" ? `My ${teamLabel} Tickets` : "My Open Tickets"}
             value={stats.myOpenTickets}
-            sub="assigned to you"
+            sub={isStakeholder ? "submitted or assigned" : `assigned to ${userName}`}
             icon={<User className="h-3.5 w-3.5" aria-hidden="true" />}
             accentClass="border-t-sky-400"
             href="/my-work"
@@ -250,10 +267,12 @@ export function DashboardClient({ data, userName, teamStats, sprintStatusCounts 
         );
       })()}
 
-      {/* Teams */}
-      <section aria-label="Team stats">
-        <TeamStatsSection teamStats={teamStats} />
-      </section>
+      {/* Teams — admin only */}
+      {isAdmin && (
+        <section aria-label="Team stats">
+          <TeamStatsSection teamStats={teamStats} highlightTeam={effectiveTeam ?? undefined} />
+        </section>
+      )}
 
       {/* Recent Activity */}
       <section aria-label="Recent activity">

@@ -49,7 +49,7 @@ export function KanbanColumn({
           <span className={cn("h-2 w-2 rounded-full shrink-0", config.dotColor)} aria-hidden="true" />
           <span className={cn("text-sm font-semibold truncate", config.labelColor)}>{config.label}</span>
           <span className={cn(
-            "text-xs font-mono px-1.5 py-0.5 rounded-full ring-1 ring-inset",
+            "text-xs font-mono px-1.5 py-0.5 rounded-full ring-1 ring-inset transition-colors duration-300",
             overWip ? "bg-red-500/10 text-red-700 dark:text-red-300 ring-red-500/20"
               : atWip ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-amber-500/20"
               : "bg-muted text-muted-foreground ring-border/50"
@@ -64,9 +64,11 @@ export function KanbanColumn({
         </div>
         {overWip && <span className="text-[10px] text-red-700 dark:text-red-400 font-medium shrink-0">WIP exceeded</span>}
       </div>
-      <div className={cn("flex flex-col gap-2 p-2 flex-1 min-h-0 overflow-y-auto transition-colors", isOver && "bg-primary/5")}>
-        {tickets.map((t) => (
-          <KanbanCard key={t.id} ticket={t} onDragStart={onDragStart} onCardClick={onCardClick} onStatusChange={onStatusChange} />
+      <div className={cn("flex flex-col gap-2 p-2 flex-1 min-h-0 overflow-y-auto transition-colors duration-200", isOver && "bg-primary/5")}>
+        {tickets.map((t, i) => (
+          <div key={t.id} className="animate-fade-up" style={{ animationDelay: `${i * 35}ms` }}>
+            <KanbanCard ticket={t} onDragStart={onDragStart} onCardClick={onCardClick} onStatusChange={onStatusChange} />
+          </div>
         ))}
         {tickets.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-2 py-6 border border-dashed border-border/40 rounded-lg">

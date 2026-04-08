@@ -14,15 +14,23 @@ import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { UserRole, TicketStatus } from "@prisma/client";
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { session, error } = await requireAuth();
   if (error) return error;
-  if (
-    !isPrivileged(session.user.role as UserRole)
-  ) {
+  if (!isPrivileged(session.user.role as UserRole)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Optional body: { targetSprintId: string | null }
+  // When provided, non-done tickets are moved directly to that sprint instead of backlog.
+  let targetSprintId: string | null = null;
+  try {
+    const body = await req.json() as { targetSprintId?: string | null };
+    targetSprintId = body.targetSprintId ?? null;
+  } catch {
+    // Body is optional — missing or malformed body defaults to backlog
   }
 
   const { id } = await params;
@@ -55,7 +63,8 @@ export async function POST(
 
   const nonDoneTickets = sprint.tickets;
   const carriedOver = nonDoneTickets.length;
-  const nextSprintId = nextSprint?.id ?? null;
+  // Use caller-provided targetSprintId if given; otherwise fall back to auto-detected next sprint
+  const resolvedNextSprintId = targetSprintId ?? nextSprint?.id ?? null;
 
   try {
     await db.$transaction(async (tx) => {
@@ -65,8 +74,9 @@ export async function POST(
           data: {
             ticketId: ticket.id,
             fromSprintId: id,
-            toSprintId: nextSprintId,
-            status: "PENDING",
+            toSprintId: resolvedNextSprintId,
+            // Auto-accept when caller explicitly chose a target sprint
+            status: targetSprintId ? "ACCEPTED" : "PENDING",
           },
         });
       }
@@ -81,14 +91,14 @@ export async function POST(
         },
       });
 
-      // 3. Move non-done tickets back to backlog
+      // 3. Move non-done tickets to the chosen destination (sprint or backlog)
       if (nonDoneTickets.length > 0) {
         await tx.ticket.updateMany({
           where: {
             sprintId: id,
             status: { not: TicketStatus.DONE },
           },
-          data: { sprintId: null },
+          data: { sprintId: targetSprintId ?? null },
         });
       }
     });
@@ -97,5 +107,5 @@ export async function POST(
     return NextResponse.json({ error: "Failed to close sprint" }, { status: 500 });
   }
 
-  return NextResponse.json({ data: { carriedOver, nextSprintId } });
+  return NextResponse.json({ data: { carriedOver, nextSprintId: resolvedNextSprintId } });
 }

@@ -92,8 +92,10 @@ export function ActivityFeed({ ticketId, refreshKey }: ActivityFeedProps) {
       )}
       {items.length > 0 && (
         <div className="space-y-3">
-          {items.map((item) => (
-            <ActivityFeedItem key={`${item.kind}-${item.id}`} item={item} />
+          {items.map((item, i) => (
+            <div key={`${item.kind}-${item.id}`} className="animate-fade-up" style={{ animationDelay: `${i * 25}ms` }}>
+              <ActivityFeedItem item={item} />
+            </div>
           ))}
         </div>
       )}

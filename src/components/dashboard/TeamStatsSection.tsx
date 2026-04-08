@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Team } from "@prisma/client";
 import { TeamBadge } from "@/components/tickets/TeamBadge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface TeamStat {
   team: Team;
@@ -17,6 +18,7 @@ interface TeamStat {
 
 interface TeamStatsSectionProps {
   teamStats: TeamStat[];
+  highlightTeam?: Team | null;
 }
 
 interface StatRow {
@@ -37,19 +39,25 @@ function buildRows(stat: TeamStat): StatRow[] {
   ];
 }
 
-export function TeamStatsSection({ teamStats }: TeamStatsSectionProps) {
+export function TeamStatsSection({ teamStats, highlightTeam }: TeamStatsSectionProps) {
   if (teamStats.length === 0) return null;
+
+  // When a team is highlighted, sort it to the front
+  const sorted = highlightTeam
+    ? [...teamStats].sort((a, b) => (a.team === highlightTeam ? -1 : b.team === highlightTeam ? 1 : 0))
+    : teamStats;
 
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold">Teams</h2>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {teamStats.map((stat) => {
+        {sorted.map((stat) => {
           const rows = buildRows(stat);
+          const isHighlighted = highlightTeam && stat.team === highlightTeam;
 
           return (
             <Link key={stat.team} href={`/tickets?team=${stat.team}`} className="group hover:no-underline">
-              <Card className="h-full transition-shadow group-hover:shadow-md">
+              <Card className={cn("h-full transition-shadow group-hover:shadow-md", isHighlighted && "ring-2 ring-primary/40")}>
                 <CardHeader className="pb-2 pt-4 px-4">
                   <TeamBadge team={stat.team} />
                 </CardHeader>

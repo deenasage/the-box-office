@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { SIZE_HOURS } from "@/lib/utils";
-import { TicketSize, Prisma } from "@prisma/client";
+import { TicketSize, Prisma, UserRole } from "@prisma/client";
 import { MyWorkClient } from "@/components/my-work/MyWorkClient";
 import { isCraftView } from "@/lib/role-helpers";
 
@@ -91,14 +91,31 @@ export default async function MyWorkPage({
   const activeTab: MyWorkTab =
     tab === "capacity" ? "capacity" : tab === "deadlines" ? "deadlines" : "tickets";
 
-  const userId = session.user.id;
   const last7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const last30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-  // Determine view mode: craft = tickets assigned to me; stakeholder = tickets I submitted
   const cookieStore = await cookies();
   const adminViewMode = cookieStore.get("adminViewMode")?.value ?? null;
-  const craftMode = isCraftView(session.user.role, adminViewMode);
+
+  // Resolve effective user: admins can "view as" another user via cookie
+  let userId = session.user.id;
+  let effectiveRole = session.user.role;
+  if (session.user.role === UserRole.ADMIN) {
+    const viewAsId = cookieStore.get("viewAsUserId")?.value ?? null;
+    if (viewAsId) {
+      const viewAsUser = await db.user.findUnique({
+        where: { id: viewAsId },
+        select: { id: true, role: true },
+      });
+      if (viewAsUser && viewAsUser.role !== UserRole.ADMIN) {
+        userId = viewAsUser.id;
+        effectiveRole = viewAsUser.role;
+      }
+    }
+  }
+
+  // Determine view mode: craft = tickets assigned to me; stakeholder = tickets I submitted
+  const craftMode = isCraftView(effectiveRole, adminViewMode);
 
   // Build the ticket ownership filter for this user based on their role/view mode
   const ownershipFilter = craftMode

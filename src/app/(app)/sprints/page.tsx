@@ -17,6 +17,7 @@ import { SprintGoalsRollup } from "@/components/sprints/SprintGoalsRollup";
 import { VelocityTrend } from "@/components/sprints/VelocityTrend";
 import { BacklogHealthIndicator } from "@/components/sprints/BacklogHealthIndicator";
 import { SprintsTabBar } from "@/components/sprints/SprintsTabBar";
+import { SprintCloseButton } from "@/components/sprints/SprintCloseButton";
 
 interface PageProps {
   searchParams: Promise<{ tab?: string }>;
@@ -112,6 +113,14 @@ export default async function SprintsPage({ searchParams }: PageProps) {
                         <p className="text-xs text-muted-foreground">
                           {formatDate(sprint.startDate)} – {formatDate(sprint.endDate)}
                         </p>
+                        {sprint.isActive && (
+                          <SprintCloseButton
+                            sprintId={sprint.id}
+                            sprintName={sprint.name}
+                            isActive={true}
+                            isAdminOrLead={isAdminOrLead}
+                          />
+                        )}
                         {!sprint.isActive && isAdminOrLead && (
                           <CloneSprintButton sprintId={sprint.id} variant="icon" />
                         )}
