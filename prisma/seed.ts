@@ -28,18 +28,42 @@ async function main() {
   console.log("Seeding database...");
 
   // Delete all data in FK-safe order
+  await prisma.sprintCarryoverSuggestion.deleteMany();
   await prisma.ticketStatusHistory.deleteMany();
+  await prisma.ticketAuditLog.deleteMany();
+  await prisma.ticketAttachment.deleteMany();
+  await prisma.ticketDependency.deleteMany();
+  await prisma.timeLog.deleteMany();
+  await prisma.aIEstimate.deleteMany();
   await prisma.teamCapacity.deleteMany();
   await prisma.userSkillset.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.copilotMessage.deleteMany();
+  await prisma.copilotSession.deleteMany();
+  await prisma.comment.deleteMany();
   // TicketLabel must be cleared before Ticket and Label
   await prisma.ticketLabel.deleteMany();
+  await prisma.briefComment.deleteMany();
+  await prisma.briefAttachment.deleteMany();
+  await prisma.briefShareToken.deleteMany();
+  await prisma.ticketGenerationJob.deleteMany();
+  await prisma.brief.deleteMany();
+  await prisma.ganttItem.deleteMany();
+  await prisma.roadmapItem.deleteMany();
+  await prisma.milestone.deleteMany();
+  await prisma.projectDocument.deleteMany();
   await prisma.ticket.deleteMany();
   await prisma.label.deleteMany();
   await prisma.skillset.deleteMany();
+  await prisma.sprintSuggestion.deleteMany();
   await prisma.sprint.deleteMany();
   await prisma.epic.deleteMany();
+  await prisma.formField.deleteMany();
   await prisma.formTemplate.deleteMany();
   await prisma.routingRule.deleteMany();
+  await prisma.deletionLog.deleteMany();
+  await prisma.listValue.deleteMany();
+  await prisma.kanbanColumnConfig.deleteMany();
   await prisma.user.deleteMany();
   console.log("Cleared existing data.");
 
@@ -170,7 +194,50 @@ async function main() {
     },
   });
 
-  console.log("Created 12 users (1 admin, 4 leads, 4 designers, 3 content writers).");
+  // Stakeholder users (requestors / business partners)
+  const stakeholderPassword = await hashPassword("stakeholder123");
+
+  const stakeholderLead = await prisma.user.create({
+    data: {
+      email: "lead.stakeholder@ticketintake.com",
+      name: "Skylar Business",
+      password: stakeholderPassword,
+      role: "TEAM_LEAD_STAKEHOLDER",
+      team: null,
+    },
+  });
+
+  const stakeholder1 = await prisma.user.create({
+    data: {
+      email: "priya.marketing@ticketintake.com",
+      name: "Priya Marketing",
+      password: stakeholderPassword,
+      role: "MEMBER_STAKEHOLDER",
+      team: null,
+    },
+  });
+
+  const stakeholder2 = await prisma.user.create({
+    data: {
+      email: "ethan.brand@ticketintake.com",
+      name: "Ethan Brand",
+      password: stakeholderPassword,
+      role: "MEMBER_STAKEHOLDER",
+      team: null,
+    },
+  });
+
+  const stakeholder3 = await prisma.user.create({
+    data: {
+      email: "nadia.comms@ticketintake.com",
+      name: "Nadia Comms",
+      password: stakeholderPassword,
+      role: "MEMBER_STAKEHOLDER",
+      team: null,
+    },
+  });
+
+  console.log("Created 16 users (1 admin, 4 craft leads, 7 craft members, 1 stakeholder lead, 3 stakeholder members).");
 
   // ---- Skillsets ------------------------------------------------------------
   /// DESIGN team skillsets

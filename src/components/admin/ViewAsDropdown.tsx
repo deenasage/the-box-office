@@ -85,13 +85,20 @@ export function ViewAsDropdown({ currentUserId, viewAsUserId, viewAsUser }: View
   function selectUser(userId: string | null) {
     setOpen(false);
     setQuery("");
+    // Clear saved board filters so the previous persona's team/assignee
+    // filters don't carry over into the next view.
+    try { localStorage.removeItem("ticket-intake:kanban-filters"); } catch { /* ignore */ }
     startTransition(async () => {
       await fetch("/api/admin/view-as", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId }),
       });
-      router.refresh();
+      // Hard-navigate to the current path (strips search params) so client
+      // components like KanbanBoard fully remount with a clean state.
+      // router.refresh() alone only re-renders server components and leaves
+      // client component state (filters) intact.
+      window.location.href = window.location.pathname;
     });
   }
 

@@ -207,6 +207,7 @@ export default async function DashboardPage() {
       sprintStatusCounts={serializedSprintStatusCounts}
       effectiveTeam={effectiveTeam}
       effectiveRole={effectiveRole}
+      effectiveUserId={userId}
     />
   );
 }

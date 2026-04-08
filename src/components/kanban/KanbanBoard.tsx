@@ -1,7 +1,7 @@
 // SPEC: tickets.md
 "use client";
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -89,6 +89,8 @@ function KanbanBoardInner() {
   const [filters, setFilters] = useState<Filters>({ ...EMPTY_FILTERS });
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [filtersLoaded, setFiltersLoaded] = useState(false);
+  // When arriving from the dashboard, noSprint=1 in the URL suppresses auto-sprint
+  const noAutoSprintRef = useRef(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<TicketStatus | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -135,8 +137,10 @@ function KanbanBoardInner() {
     const urlHub = (searchParams.get("hub") ?? "") as Hub | "";
     const urlTier = searchParams.get("tier") ?? "";
     const urlCategory = searchParams.get("category") ?? "";
+    // noSprint=1 (from dashboard links) means: don't auto-apply the active sprint
+    noAutoSprintRef.current = searchParams.get("noSprint") === "1";
     const hasUrlFilters = urlTeam || urlSprintId || urlAssigneeId || urlHub || urlTier || urlCategory;
-    if (hasUrlFilters) {
+    if (hasUrlFilters || noAutoSprintRef.current) {
       setFilters({ team: urlTeam, sprintId: urlSprintId, assigneeId: urlAssigneeId, hub: urlHub, tier: urlTier, category: urlCategory });
     } else {
       setFilters(loadFilters());
@@ -172,7 +176,7 @@ function KanbanBoardInner() {
         const j = (await r.json()) as { data: { id: string; name: string; isActive?: boolean }[] };
         const list = j.data ?? [];
         setSprints(list);
-        if (!filters.sprintId) {
+        if (!filters.sprintId && !noAutoSprintRef.current) {
           const active = list.find((s) => s.isActive);
           if (active) {
             effectiveFilters = { ...filters, sprintId: active.id };

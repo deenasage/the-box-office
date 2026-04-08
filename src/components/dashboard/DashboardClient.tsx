@@ -111,20 +111,26 @@ interface DashboardClientProps {
   sprintStatusCounts: SprintStatusCount[];
   effectiveTeam?: Team | null;
   effectiveRole?: UserRole | null;
+  effectiveUserId?: string | null;
 }
 
-export function DashboardClient({ data, userName, teamStats, sprintStatusCounts, effectiveTeam, effectiveRole }: DashboardClientProps) {
+export function DashboardClient({ data, userName, teamStats, sprintStatusCounts, effectiveTeam, effectiveRole, effectiveUserId }: DashboardClientProps) {
   const { stats, activeSprint, recentActivity } = data;
 
   const teamLabel = effectiveTeam ? (TEAM_LABELS[effectiveTeam] ?? effectiveTeam) : null;
-  const isCraftScoped = (effectiveRole === "TEAM_LEAD_CRAFT" || effectiveRole === "MEMBER_CRAFT") && !!teamLabel;
+  const isTeamLeadCraft = effectiveRole === "TEAM_LEAD_CRAFT" && !!teamLabel;
+  const isMemberCraft = effectiveRole === "MEMBER_CRAFT";
+  const isCraftScoped = isTeamLeadCraft || isMemberCraft;
   const isStakeholder = effectiveRole === "MEMBER_STAKEHOLDER" || effectiveRole === "TEAM_LEAD_STAKEHOLDER";
   const isAdmin = !effectiveRole || effectiveRole === "ADMIN";
 
-  // When team-scoped, ticket links carry the team filter so the list auto-filters
-  const teamTicketsHref = isCraftScoped && effectiveTeam
-    ? `/tickets?team=${effectiveTeam}`
-    : "/tickets";
+  // Ticket links carry the correct filter for the viewer's role.
+  // noSprint=1 tells the board not to auto-apply the active sprint on arrival.
+  const teamTicketsHref = isTeamLeadCraft && effectiveTeam
+    ? `/tickets?team=${effectiveTeam}&noSprint=1`
+    : isMemberCraft && effectiveUserId
+    ? `/tickets?assigneeId=${effectiveUserId}&noSprint=1`
+    : "/tickets?noSprint=1";
 
   const isEmptyState =
     !activeSprint &&
@@ -197,7 +203,7 @@ export function DashboardClient({ data, userName, teamStats, sprintStatusCounts,
             sub={isCraftScoped ? `${teamLabel} team` : isStakeholder ? "your requests" : "actively being worked"}
             icon={<CircleDot className="h-3.5 w-3.5" aria-hidden="true" />}
             accentClass="border-t-violet-400"
-            href={`${teamTicketsHref}${isCraftScoped ? "&status=IN_PROGRESS" : "?status=IN_PROGRESS"}`}
+            href={`${teamTicketsHref}&status=IN_PROGRESS`}
           />
           <StatCard
             label="Overdue"

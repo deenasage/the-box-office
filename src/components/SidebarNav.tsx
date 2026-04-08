@@ -17,6 +17,7 @@ import {
 import { UserRole, Team } from "@prisma/client";
 
 interface NavUser {
+  id: string;
   name: string;
   email: string;
   role: UserRole;
@@ -26,13 +27,15 @@ interface NavUser {
 interface NavItem {
   href: string;
   label: string;
+  stakeholderLabel?: string;
+  hideForAdmin?: boolean;
   icon: ComponentType<{ className?: string }>;
   matchPrefixes?: string[];
 }
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/my-work", label: "My Work", icon: User },
+  { href: "/my-work", label: "My Work", icon: User, stakeholderLabel: "My Requests", hideForAdmin: true },
   { href: "/tickets", label: "Tickets", icon: Kanban },
   {
     href: "/submit-request",
@@ -61,6 +64,9 @@ export function SidebarNav({
   const pathname = usePathname();
 
   const isAdminArea = pathname.startsWith("/admin");
+  const isStakeholder =
+    user.role === UserRole.MEMBER_STAKEHOLDER ||
+    user.role === UserRole.TEAM_LEAD_STAKEHOLDER;
 
   const activeNavHref = NAV_ITEMS
     .filter((item) => {
@@ -75,6 +81,14 @@ export function SidebarNav({
     .sort((a, b) => b.length - a.length)[0] ?? null;
 
   const canAccessAdmin = user.role === UserRole.ADMIN || isTeamLead(user.role);
+
+  // Build a role-aware href for the Tickets nav item
+  function resolveHref(href: string): string {
+    if (href !== "/tickets") return href;
+    if (user.role === UserRole.TEAM_LEAD_CRAFT && user.team) return `/tickets?team=${user.team}`;
+    if (user.role === UserRole.MEMBER_CRAFT) return `/tickets?assigneeId=${user.id}`;
+    return href;
+  }
 
   return (
     <aside className="w-56 flex flex-col h-screen sticky top-0 bg-sidebar border-r border-sidebar-border">
@@ -98,10 +112,10 @@ export function SidebarNav({
 
       {/* Main nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
+        {NAV_ITEMS.filter(({ hideForAdmin }) => !(user.role === UserRole.ADMIN && hideForAdmin)).map(({ href, label, stakeholderLabel, icon: Icon }) => (
           <Link
             key={href}
-            href={href}
+            href={resolveHref(href)}
             className={cn(
               "group/nav flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm transition-colors duration-150 hover:no-underline",
               href === activeNavHref
@@ -110,7 +124,7 @@ export function SidebarNav({
             )}
           >
             <Icon className="h-4 w-4 shrink-0 transition-transform duration-150 group-hover/nav:scale-110" />
-            {label}
+            {isStakeholder && stakeholderLabel ? stakeholderLabel : label}
           </Link>
         ))}
 

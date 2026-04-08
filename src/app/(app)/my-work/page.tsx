@@ -209,6 +209,10 @@ export default async function MyWorkPage({
     sprint: t.sprint,
   }));
 
+  const isStakeholder =
+    effectiveRole === UserRole.MEMBER_STAKEHOLDER ||
+    effectiveRole === UserRole.TEAM_LEAD_STAKEHOLDER;
+
   return (
     <MyWorkClient
       activeTab={activeTab}
@@ -218,6 +222,7 @@ export default async function MyWorkPage({
       upcomingDeadlines={serializedDeadlines}
       capacityDefaults={capacityDefaults}
       activeSprint={activeSprintInfo}
+      isStakeholder={isStakeholder}
     />
   );
 }

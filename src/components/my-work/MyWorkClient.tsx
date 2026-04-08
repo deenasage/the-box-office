@@ -49,6 +49,7 @@ interface MyWorkClientProps {
   upcomingDeadlines: DeadlineTicket[];
   capacityDefaults: UserCapacityDefaults;
   activeSprint: ActiveSprintInfo | null;
+  isStakeholder?: boolean;
 }
 
 type ViewMode = "kanban" | "list";
@@ -888,8 +889,14 @@ function DeadlinesView({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-const TABS: { key: MyWorkTab; label: string }[] = [
+const CRAFT_TABS: { key: MyWorkTab; label: string }[] = [
   { key: "tickets", label: "My Tickets" },
+  { key: "capacity", label: "My Capacity" },
+  { key: "deadlines", label: "Upcoming Deadlines" },
+];
+
+const STAKEHOLDER_TABS: { key: MyWorkTab; label: string }[] = [
+  { key: "tickets", label: "My Requests" },
   { key: "capacity", label: "My Capacity" },
   { key: "deadlines", label: "Upcoming Deadlines" },
 ];
@@ -902,7 +909,9 @@ export function MyWorkClient({
   upcomingDeadlines,
   capacityDefaults,
   activeSprint,
+  isStakeholder = false,
 }: MyWorkClientProps) {
+  const TABS = isStakeholder ? STAKEHOLDER_TABS : CRAFT_TABS;
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [localOpen, setLocalOpen] = useState<WorkTicket[]>(openTickets);
@@ -966,9 +975,11 @@ export function MyWorkClient({
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">My Work</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {isStakeholder ? "My Requests" : "My Work"}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Your assigned tickets and workload
+            {isStakeholder ? "Requests you've submitted and their status" : "Your assigned tickets and workload"}
           </p>
         </div>
 
