@@ -25,9 +25,8 @@ const updateSchema = z.object({
   sprintId: z.string().nullable().optional(),
   epicId: z.string().nullable().optional(),
   // Accept both full ISO-8601 strings and bare YYYY-MM-DD date strings.
-  // Prisma requires a Date object for DateTime fields — we coerce here so
-  // that the DueDateField component can send "2026-03-25" without a 500.
-  // Null/undefined pass through unchanged; empty string is treated as null.
+  // Date conversion happens in the handler — Zod transforms produce `undefined`
+  // as an explicit key in the output object, which Prisma 7.x rejects.
   dueDate: z
     .string()
     .nullable()
@@ -35,12 +34,7 @@ const updateSchema = z.object({
     .refine(
       (v) => v === undefined || v === null || v === "" || !isNaN(new Date(v).getTime()),
       { message: "Invalid date format" }
-    )
-    .transform((v) => {
-      if (v === undefined) return undefined;
-      if (v === null || v === "") return null;
-      return new Date(v);
-    }),
+    ),
   // SPEC: skillsets.md — link or clear the required skillset for this ticket
   requiredSkillsetId: z.string().nullable().optional(),
   // SPEC: sprints.md — per-ticket acceptance criteria / Definition of Done
@@ -114,12 +108,22 @@ export async function PATCH(
   const statusChanged =
     parsed.data.status && current && current.status !== parsed.data.status;
 
+  // Build a clean Prisma data object: strip undefined values (Prisma 7.x rejects them)
+  // and convert dueDate string → Date (removed from Zod transform to avoid undefined key injection).
+  const { dueDate: rawDueDate, tier: _tier, category: _category, ...rest } = parsed.data;
+  const prismaData: Record<string, unknown> = Object.fromEntries(
+    Object.entries(rest).filter(([, v]) => v !== undefined)
+  );
+  if (rawDueDate !== undefined) {
+    prismaData.dueDate = rawDueDate === null || rawDueDate === "" ? null : new Date(rawDueDate);
+  }
+
   try {
     if (statusChanged) {
       const updatedTicket = await db.$transaction(async (tx) => {
         const t = await tx.ticket.update({
           where: { id },
-          data: parsed.data,
+          data: prismaData,
           include: ticketInclude,
         });
         await tx.ticketStatusHistory.create({
@@ -136,7 +140,7 @@ export async function PATCH(
     } else {
       ticket = await db.ticket.update({
         where: { id },
-        data: parsed.data,
+        data: prismaData,
         include: ticketInclude,
       });
     }
