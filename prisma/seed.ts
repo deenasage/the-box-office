@@ -3,9 +3,11 @@
 
 import "dotenv/config";
 import { PrismaClient, TicketStatus } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, 12);

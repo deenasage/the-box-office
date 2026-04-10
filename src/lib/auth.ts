@@ -1,4 +1,5 @@
 // SPEC: auth.md
+// v2
 // SSO groundwork: OIDC provider is registered only when SSO_CLIENT_ID + SSO_CLIENT_SECRET
 // are set in the environment. Set SSO_ENABLED=true in .env.local to activate it.
 // Credentials login always remains available for local dev / demo use.
