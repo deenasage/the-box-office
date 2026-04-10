@@ -3,15 +3,9 @@
 
 import "dotenv/config";
 import { PrismaClient, TicketStatus } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import bcrypt from "bcryptjs";
-import path from "path";
 
-/// Resolve DB path from DATABASE_URL (strips "file:" prefix, resolves relative to CWD)
-const dbUrl = process.env.DATABASE_URL ?? "file:./dev.db";
-const dbPath = path.resolve(dbUrl.replace(/^file:/, ""));
-const adapter = new PrismaBetterSqlite3({ url: dbPath });
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, 12);
