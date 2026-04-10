@@ -7,6 +7,8 @@ import { buildCapacityContext, getUpcomingSprints } from "@/lib/ai/capacity-cont
 import { suggestSprintPlacement } from "@/lib/ai/sprint-planner";
 import { Team, TicketSize } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const bodySchema = z.object({
   ticketIds: z.array(z.string()).min(1),
   sprintCount: z.number().int().min(1).max(6).optional().default(3),

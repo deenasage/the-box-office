@@ -12,6 +12,8 @@ import { db } from "@/lib/db";
 import claude from "@/lib/ai/claude-client";
 import type { ProjectDocumentData } from "@/types/project-document";
 
+export const dynamic = "force-dynamic";
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function parseTab<T>(raw: string | null): T | null {

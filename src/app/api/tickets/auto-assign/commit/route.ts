@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { UserRole, TicketStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const commitAssignmentSchema = z.object({
   ticketId: z.string().min(1),
   assigneeId: z.string().nullable(),

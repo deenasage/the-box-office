@@ -6,6 +6,8 @@ import { TicketStatus } from "@prisma/client";
 import { findSimilarTickets } from "@/lib/ai/estimation-context";
 import { estimateTicket } from "@/lib/ai/estimator";
 
+export const dynamic = "force-dynamic";
+
 const DEBOUNCE_MINUTES = 5;
 
 export async function POST(

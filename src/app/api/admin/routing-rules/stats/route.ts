@@ -13,6 +13,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { UserRole } from "@prisma/client";
 import { detectTeam } from "@/lib/routing";
 
+export const dynamic = "force-dynamic";
+
 interface RuleMatchStat {
   ruleId: string;
   matchCount: number;

@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { SIZE_HOURS } from "@/lib/utils";
 import { TicketStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 interface BurndownDay {
   date: string;
   remaining: number;

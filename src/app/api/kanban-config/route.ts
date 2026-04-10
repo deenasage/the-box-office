@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { Team, TicketStatus, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/kanban-config — returns all KanbanColumnConfig rows
 export async function GET(_req: NextRequest) {
   const { session, error } = await requireAuth();

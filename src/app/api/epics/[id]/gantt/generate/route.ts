@@ -10,6 +10,8 @@ import { db } from "@/lib/db";
 import { Team, UserRole } from "@prisma/client";
 import claude from "@/lib/ai/claude-client";
 
+export const dynamic = "force-dynamic";
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TEAM_COLORS: Record<Team, string> = {

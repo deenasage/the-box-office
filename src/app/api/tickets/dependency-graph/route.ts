@@ -6,6 +6,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { DependencyType, TicketStatus, Team } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 interface GraphNode {
   id: string;
   title: string;

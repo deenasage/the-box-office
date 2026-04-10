@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { BriefStatus, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const PatchSchema = z.object({
   title: z.string().min(1).optional(),
   rawInput: z.string().optional(),

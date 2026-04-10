@@ -8,6 +8,8 @@ import { db } from "@/lib/db";
 import { DependencyType, DetectionMethod, UserRole } from "@prisma/client";
 import { detectSequencingWarnings } from "@/lib/dependencies";
 
+export const dynamic = "force-dynamic";
+
 const createSchema = z.object({
   toTicketId: z.string().cuid(),
   type: z.nativeEnum(DependencyType),

@@ -6,6 +6,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { detectSequencingWarnings } from "@/lib/dependencies";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

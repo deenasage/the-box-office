@@ -5,6 +5,8 @@ import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

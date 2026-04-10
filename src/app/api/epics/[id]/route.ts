@@ -12,6 +12,8 @@ import { db } from "@/lib/db";
 import { Team, EpicStatus, UserRole, TicketStatus } from "@prisma/client";
 import { syncRoadmapItem } from "@/lib/sync-roadmap-item";
 
+export const dynamic = "force-dynamic";
+
 const updateEpicSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   description: z.string().nullable().optional(),

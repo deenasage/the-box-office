@@ -10,6 +10,8 @@ import { UserRole } from "@prisma/client";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const PostSchema = z.object({
   label: z.string().max(200).optional(),
 });

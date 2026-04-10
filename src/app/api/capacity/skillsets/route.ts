@@ -16,6 +16,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { Team } from "@prisma/client";
 import { SIZE_HOURS } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 const DEFAULT_CAPACITY = 40;
 
 export async function GET(req: NextRequest) {

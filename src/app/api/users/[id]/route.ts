@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { UserRole, Team, StakeholderTeam, Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const UpdateUserSchema = z.object({
   name: z.string().min(1, "Name must not be empty").max(255).optional(),
   email: z.string().email("Invalid email address").max(255).optional(),

@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/admin/deletion-log — ADMIN only.
 // Returns the last 100 deletion log entries ordered by createdAt desc.
 export async function GET(_req: NextRequest) {

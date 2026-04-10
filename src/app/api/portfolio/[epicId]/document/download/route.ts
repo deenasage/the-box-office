@@ -21,6 +21,8 @@ import type {
   GoLiveCommsRow,
 } from "@/types/project-document";
 
+export const dynamic = "force-dynamic";
+
 // ── Style constants ───────────────────────────────────────────────────────────
 
 const HEADER_FILL: ExcelJS.Fill = {

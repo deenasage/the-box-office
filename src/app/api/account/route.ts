@@ -10,6 +10,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const PatchAccountSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   email: z.string().email().max(255).optional(),

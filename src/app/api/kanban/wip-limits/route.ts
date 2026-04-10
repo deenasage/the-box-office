@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { Team, TicketStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // Default WIP limits that match the hardcoded COLUMNS values in types.ts.
 // These are applied to all teams as the initial global baseline.
 const DEFAULTS: { status: TicketStatus; wipLimit: number | null; hidden: boolean }[] = [

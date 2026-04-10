@@ -9,6 +9,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/api-helpers";
 
+export const dynamic = "force-dynamic";
+
 const ReorderSchema = z.object({
   ids: z.array(z.string().cuid()).min(1),
 });

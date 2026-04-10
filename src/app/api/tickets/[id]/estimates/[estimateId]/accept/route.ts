@@ -4,6 +4,8 @@ import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole, TicketSize } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const VALID_SIZES = new Set<string>(Object.values(TicketSize));
 
 export async function POST(

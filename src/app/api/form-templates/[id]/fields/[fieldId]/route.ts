@@ -6,6 +6,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { UserRole, FieldType } from "@prisma/client";
 import type { ConditionalRule } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 const ruleSchema = z.object({
   when: z.object({
     fieldKey: z.string(),

@@ -10,6 +10,8 @@ import { db } from "@/lib/db";
 import { BriefStatus } from "@prisma/client";
 import { createNotification } from "@/lib/notify-users";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

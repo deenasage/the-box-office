@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { storageWrite, UPLOADS_ROOT } from "@/lib/storage";
 import { join, extname, basename } from "path";
 
+export const dynamic = "force-dynamic";
+
 // Validate that a path segment is a safe CUID (alphanumeric only) before using
 // it as a filesystem directory name — prevents path traversal via the URL id.
 const SAFE_ID_RE = /^[a-z0-9]+$/i;

@@ -6,6 +6,8 @@ import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { UserRole } from "@prisma/client";
 import { SIZE_HOURS } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 const createSchema = z
   .object({
     name: z.string().min(1).max(100),

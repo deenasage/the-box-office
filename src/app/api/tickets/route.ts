@@ -8,6 +8,8 @@ import { evaluateConditions } from "@/lib/form-logic";
 import { Team, TicketSize, TicketStatus, Hub, TicketType, Prisma } from "@prisma/client";
 import type { ConditionalRule, FormFieldConfig } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 const createSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().optional(),

@@ -6,6 +6,8 @@ import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { UserRole, EntityType } from "@prisma/client";
 import { createNotifications } from "@/lib/notify-users";
 
+export const dynamic = "force-dynamic";
+
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   goal: z.string().max(500).nullable().optional(),

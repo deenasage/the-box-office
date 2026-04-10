@@ -6,6 +6,8 @@ import { BriefStatus, UserRole } from "@prisma/client";
 import { generateBrief, ClarificationItem } from "@/lib/ai/brief-generator";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const ClarificationItemSchema = z.object({
   id: z.string(),
   question: z.string(),

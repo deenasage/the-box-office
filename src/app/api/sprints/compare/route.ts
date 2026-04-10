@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { SIZE_HOURS } from "@/lib/utils";
 import { Team, TicketStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 export interface SprintCompareSummary {
   id: string;
   name: string;

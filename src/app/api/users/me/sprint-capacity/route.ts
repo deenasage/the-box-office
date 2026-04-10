@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 // PUT /api/users/me/sprint-capacity
 // Body: { sprintId: string, daysOff: number }
 // Upserts the TeamCapacity row for the current user + sprint with the given daysOff.

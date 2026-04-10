@@ -10,6 +10,8 @@ import { db } from "@/lib/db";
 import { detectTeam } from "@/lib/routing";
 import { UserRole, TicketStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const IntakeSchema = z.object({
   formData: z.record(z.string(), z.unknown()),
   templateId: z.string().optional(),

@@ -7,6 +7,8 @@ import { z } from "zod";
 import { requireAuth } from "@/lib/api-helpers";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const schema = z.object({
   mode: z.enum(["craft", "stakeholder"]),
 });

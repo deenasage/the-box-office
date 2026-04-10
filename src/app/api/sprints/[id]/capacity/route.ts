@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const upsertSchema = z.object({
   userId: z.string(),
   points: z.number().int().min(0),

@@ -6,6 +6,8 @@ import { TicketStatus, UserRole } from "@prisma/client";
 import { findSimilarTickets } from "@/lib/ai/estimation-context";
 import { estimateTicket } from "@/lib/ai/estimator";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

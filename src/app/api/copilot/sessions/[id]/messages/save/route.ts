@@ -7,6 +7,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { MessageRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const bodySchema = z.object({
   content: z.string().min(1, "Content cannot be empty"),
   promptTokens: z.number().int().nonnegative(),

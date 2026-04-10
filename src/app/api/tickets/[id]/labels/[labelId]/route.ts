@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 
+export const dynamic = "force-dynamic";
+
 // DELETE /api/tickets/[id]/labels/[labelId]
 // Auth: any authenticated user
 // Removes a single label from a ticket by deleting the TicketLabel join row.

@@ -8,6 +8,8 @@ import { requireRole } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const UpdateListValueSchema = z.object({
   value: z.string().min(1).max(255).optional(),
   sortOrder: z.number().int().optional(),

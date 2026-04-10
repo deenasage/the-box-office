@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 import { Team, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
   keywords: z.array(z.string()).optional(),

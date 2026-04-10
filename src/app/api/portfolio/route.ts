@@ -8,6 +8,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { Team, EpicStatus, TicketStatus, BriefStatus, UserRole, Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 interface PortfolioListItem {
   epicId: string;
   epicName: string;

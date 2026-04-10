@@ -13,6 +13,8 @@ import {
 } from "docx";
 import { GTM_SECTIONS } from "@/components/briefs/gtm-sections";
 
+export const dynamic = "force-dynamic";
+
 function val(v: string | null | undefined): string {
   if (!v || v.trim() === "") return "N/A";
   return v.trim();

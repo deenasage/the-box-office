@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const PatchSchema = z.object({
   label: z.string().max(200).nullable().optional(),
   revoked: z.boolean().optional(),

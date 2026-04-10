@@ -12,6 +12,8 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 import { UserRole, Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const PatchCustomFieldValueSchema = z.object({
   fieldId: z.string().cuid(),
   value: z.string(),

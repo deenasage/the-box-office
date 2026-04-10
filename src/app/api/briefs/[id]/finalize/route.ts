@@ -7,6 +7,8 @@ import type { ClarificationItem } from "@/lib/ai/brief-generator";
 import { syncEpicStatus } from "@/lib/epic-status";
 import { createNotification } from "@/lib/notify-users";
 
+export const dynamic = "force-dynamic";
+
 function canMutate(
   session: { user: { id: string; role: UserRole } },
   creatorId: string

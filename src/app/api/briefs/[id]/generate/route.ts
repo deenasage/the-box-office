@@ -8,6 +8,8 @@ import { generateGtmBrief } from "@/lib/ai/gtm-brief-generator";
 import { extractText } from "@/lib/ai/text-extractor";
 import fs from "fs/promises";
 
+export const dynamic = "force-dynamic";
+
 function canMutate(
   session: { user: { id: string; role: UserRole } },
   creatorId: string

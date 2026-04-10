@@ -6,6 +6,8 @@ import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { UserRole, Team, TicketSize, TicketStatus, DependencyType } from "@prisma/client";
 import { SIZE_HOURS } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 const previewSchema = z.object({
   targetSprintId: z.string().min(1),
   // Accept either a single Team value or an array of Team values.

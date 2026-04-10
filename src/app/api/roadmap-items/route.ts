@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { RoadmapItemStatus, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const createSchema = z.object({
   tier: z.string().optional(),
   category: z.string().optional(),

@@ -6,6 +6,8 @@ import { storageDelete, storageReadAbsolute, UPLOADS_ROOT } from "@/lib/storage"
 import { UserRole } from "@prisma/client";
 import path from "path";
 
+export const dynamic = "force-dynamic";
+
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; attachmentId: string }> }

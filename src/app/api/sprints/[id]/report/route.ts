@@ -6,6 +6,8 @@ import { SIZE_HOURS } from "@/lib/utils";
 import { Team, TicketStatus } from "@prisma/client";
 import type { SprintReport, TeamReportRow } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

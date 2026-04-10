@@ -6,6 +6,8 @@ import { Team } from "@prisma/client";
 import { z } from "zod";
 import type { RoadmapPayload } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const { session, error } = await requireAuth();
   if (error) return error;

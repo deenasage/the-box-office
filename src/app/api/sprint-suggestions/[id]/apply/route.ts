@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { UserRole , Prisma } from "@prisma/client";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const bodySchema = z.object({
   sprintId: z.string().min(1),
 });

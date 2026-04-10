@@ -12,6 +12,8 @@ import { db } from "@/lib/db";
 import { BriefStatus, UserRole } from "@prisma/client";
 import claude from "@/lib/ai/claude-client";
 
+export const dynamic = "force-dynamic";
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface SuggestedEpic {

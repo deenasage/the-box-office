@@ -9,6 +9,8 @@ import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { Team, EpicStatus, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const createEpicSchema = z.object({
   name: z.string().min(1).max(255),
   color: z.string().min(1).max(32).optional(),

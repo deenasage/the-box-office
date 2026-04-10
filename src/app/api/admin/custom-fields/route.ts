@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/api-helpers";
 import { CustomFieldType, Team, Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const CreateCustomFieldSchema = z.object({
   name: z.string().min(1).max(255),
   fieldType: z.nativeEnum(CustomFieldType),

@@ -8,6 +8,8 @@ import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const PatchSchema = z.object({
   resolved: z.boolean(),
 });

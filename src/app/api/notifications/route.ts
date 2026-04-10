@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(_req: NextRequest) {
   const { session, error } = await requireAuth();
   if (error) return error;

@@ -8,6 +8,8 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 import { sendEmail, ticketCommentEmail } from "@/lib/mailer";
 
+export const dynamic = "force-dynamic";
+
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 const createCommentSchema = z.object({

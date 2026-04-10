@@ -4,6 +4,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 
+export const dynamic = "force-dynamic";
+
 const putSchema = z.object({
   labelIds: z.array(z.string()),
 });

@@ -10,6 +10,8 @@ import { Team, EpicStatus, TicketStatus, DependencyType } from "@prisma/client";
 import { SIZE_HOURS } from "@/lib/utils";
 import { detectSequencingWarnings } from "@/lib/dependencies";
 
+export const dynamic = "force-dynamic";
+
 interface ByStatus { status: EpicStatus; count: number }
 interface TeamLoad { team: Team; capacity: number; committed: number }
 interface UpcomingDelivery { epicId: string; epicName: string; endDate: string; completionPct: number }

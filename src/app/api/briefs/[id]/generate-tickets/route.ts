@@ -6,6 +6,8 @@ import { BriefStatus, GenerationStatus, TicketStatus, UserRole } from "@prisma/c
 import { generateTicketsFromBrief } from "@/lib/ai/ticket-generator";
 import { parseJsonSafe } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 function canMutate(
   session: { user: { id: string; role: UserRole } },
   creatorId: string

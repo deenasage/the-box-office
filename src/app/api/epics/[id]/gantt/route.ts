@@ -10,6 +10,8 @@ import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { Team, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const TEAM_COLORS: Record<Team, string> = {

@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { Team, TicketStatus, TicketSize, BriefStatus, EpicStatus } from "@prisma/client";
 import { SIZE_HOURS } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 interface TicketRow {
   id: string;
   title: string;

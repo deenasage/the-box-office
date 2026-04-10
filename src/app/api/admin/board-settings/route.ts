@@ -12,6 +12,8 @@ import { db } from "@/lib/db";
 import { requirePrivileged } from "@/lib/api-helpers";
 import { Team, TicketStatus, Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const ALL_TEAMS = Object.values(Team);
 const ALL_STATUSES = Object.values(TicketStatus);
 

@@ -11,6 +11,8 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 import { UserRole, Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const skillsetIdSchema = z.object({
   skillsetId: z.string().cuid(),
 });

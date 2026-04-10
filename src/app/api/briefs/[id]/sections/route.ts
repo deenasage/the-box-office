@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { BriefStatus, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const SectionsSchema = z.object({
   objective: z.string().optional(),
   targetAudience: z.string().optional(),

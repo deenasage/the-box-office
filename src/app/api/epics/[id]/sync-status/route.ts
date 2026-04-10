@@ -9,6 +9,8 @@ import { UserRole } from "@prisma/client";
 import { syncEpicStatus } from "@/lib/epic-status";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

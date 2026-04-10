@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 import { Team, UserRole, Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const createSkillsetSchema = z.object({
   name: z.string().min(1).max(100),
   team: z.nativeEnum(Team).optional(),

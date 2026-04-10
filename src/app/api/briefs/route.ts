@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { UserRole, BriefStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const BRIEF_TYPE_VALUES = ["GTM", "CAMPAIGN_LAUNCH", "CAMPAIGN_UPDATE", "PROBLEM_STATEMENT"] as const;
 
 const CreateSchema = z.object({

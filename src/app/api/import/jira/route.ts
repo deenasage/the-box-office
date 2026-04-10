@@ -15,6 +15,8 @@ import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { detectTeam } from "@/lib/routing";
 import { Team, TicketStatus, TicketSize, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB

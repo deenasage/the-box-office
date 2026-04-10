@@ -11,6 +11,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { SIZE_HOURS } from "@/lib/utils";
 import { Team, TicketSize } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const QuerySchema = z.object({
   team: z.nativeEnum(Team).optional(),
   sprintId: z.string().cuid().optional(),

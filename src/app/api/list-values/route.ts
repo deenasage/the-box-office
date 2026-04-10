@@ -8,6 +8,8 @@ import { requireAuth, requireRole } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const LIST_KEYS = ["team", "tier", "category", "region"] as const;
 type ListKey = (typeof LIST_KEYS)[number];
 

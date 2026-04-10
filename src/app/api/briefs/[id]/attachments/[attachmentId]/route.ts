@@ -6,6 +6,8 @@ import { UserRole } from "@prisma/client";
 import { storageDelete, storageReadAbsolute, UPLOADS_ROOT } from "@/lib/storage";
 import path from "path";
 
+export const dynamic = "force-dynamic";
+
 function canMutate(
   session: { user: { id: string; role: UserRole } },
   creatorId: string

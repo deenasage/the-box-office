@@ -7,6 +7,8 @@ import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 type RouteContext = { params: Promise<{ id: string }> };
 
 function canViewComments(

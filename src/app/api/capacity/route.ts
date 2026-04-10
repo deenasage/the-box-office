@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { Team, TicketStatus } from "@prisma/client";
 import { SIZE_HOURS } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/capacity — authenticated, returns team capacity vs committed points for a sprint
 // Response: { sprintId, sprintName, teams } | { error: string }
 export async function GET(req: NextRequest) {

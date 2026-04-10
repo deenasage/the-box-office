@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { Prisma, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // DELETE /api/sprints/[id]/capacity/[userId]
 // Auth: any authenticated user (ADMIN or TEAM_LEAD may remove capacity entries)
 // Deletes the TeamCapacity record for a specific user in a specific sprint.

@@ -6,6 +6,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { MessageRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // GET — list sessions for the current user
 // Response: { data: { id: string; createdAt: string; preview: string }[] }
 export async function GET() {

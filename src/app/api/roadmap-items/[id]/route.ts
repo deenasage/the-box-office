@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { RoadmapItemStatus, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const patchSchema = z.object({
   tier: z.string().nullish(),
   category: z.string().nullish(),

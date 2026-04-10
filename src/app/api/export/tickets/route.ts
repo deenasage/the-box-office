@@ -10,6 +10,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { Team, TicketStatus } from "@prisma/client";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 // ── CSV helpers ────────────────────────────────────────────────────────────────
 
 /**

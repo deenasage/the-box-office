@@ -8,6 +8,8 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 import { TicketStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const bulkPatchSchema = z.object({
   ids: z.array(z.string()).min(1).max(100),
   patch: z

@@ -21,6 +21,8 @@ import {
   UserRole,
 } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // ── Zod schemas ────────────────────────────────────────────────────────────────
 
 const TeamEnum = z.enum(["CONTENT", "DESIGN", "SEO", "WEM"]);

@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import type { ProjectDocumentData } from "@/types/project-document";
 
+export const dynamic = "force-dynamic";
+
 // ── Zod schemas ───────────────────────────────────────────────────────────────
 
 const LinkSchema = z.object({

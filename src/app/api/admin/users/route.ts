@@ -10,6 +10,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { UserRole, Team, StakeholderTeam, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+export const dynamic = "force-dynamic";
+
 const userSelect = {
   id: true,
   name: true,

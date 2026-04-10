@@ -7,6 +7,8 @@ import { Team, TicketStatus } from "@prisma/client";
 import { calcLeadTime, calcCycleTime, aggregateStats } from "@/lib/reports";
 import { SIZE_HOURS } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const { session, error } = await requireAuth();
   if (error) return error;

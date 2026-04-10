@@ -7,6 +7,8 @@ import { db } from "@/lib/db";
 import { detectDependencies } from "@/lib/ai/dependency-detector";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

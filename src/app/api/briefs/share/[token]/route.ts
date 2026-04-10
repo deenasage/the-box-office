@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 type RouteContext = { params: Promise<{ token: string }> };
 
 const REVOKED_RESPONSE = NextResponse.json(

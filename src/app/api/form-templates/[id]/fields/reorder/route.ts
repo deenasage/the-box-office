@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const reorderSchema = z.object({
   fields: z.array(
     z.object({

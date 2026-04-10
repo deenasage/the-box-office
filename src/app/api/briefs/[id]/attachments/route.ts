@@ -7,6 +7,8 @@ import { extractText } from "@/lib/ai/text-extractor";
 import { storageWrite, UPLOADS_ROOT } from "@/lib/storage";
 import { join, extname, basename } from "path";
 
+export const dynamic = "force-dynamic";
+
 const ALLOWED_TYPES = new Set([
   "text/plain",
   "text/html",

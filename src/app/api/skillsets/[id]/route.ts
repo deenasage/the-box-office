@@ -9,6 +9,8 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/api-helpers";
 import { UserRole, Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const patchSkillsetSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "color must be a 6-digit hex e.g. #7c3aed").optional(),

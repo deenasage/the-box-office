@@ -5,6 +5,8 @@ import { requireAuth, isTeamLead } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const UpdateMilestoneSchema = z.object({
   name: z.string().min(1).optional(),
   date: z.string().optional(),

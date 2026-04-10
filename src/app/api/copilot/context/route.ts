@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { assembleCopilotContext } from "@/lib/ai/copilot-context";
 import { UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // GET — returns the current assembled CopilotContext; useful for debugging
 // Auth: ADMIN only
 // Response: { data: CopilotContext }

@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/api-helpers";
 import { SIZE_HOURS } from "@/lib/utils";
 import { Team, TicketSize } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // GET /api/capacity/heatmap
 // Auth: any authenticated user
 // Returns a grid of utilization percentages for every team member across

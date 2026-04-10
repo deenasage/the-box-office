@@ -6,6 +6,8 @@ import { requireAuth, isPrivileged } from "@/lib/api-helpers";
 import { db } from "@/lib/db";
 import { DependencyType, DetectionMethod, UserRole } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 const suggestionSchema = z.object({
   fromTicketId: z.string().cuid(),
   toTicketId: z.string().cuid(),

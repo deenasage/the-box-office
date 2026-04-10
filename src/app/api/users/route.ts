@@ -7,6 +7,8 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+export const dynamic = "force-dynamic";
+
 const createUserSchema = z.object({
   name: z.string().min(1).max(255),
   email: z.string().email(),
